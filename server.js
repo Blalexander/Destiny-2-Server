@@ -10,7 +10,7 @@ app.use(cors());
 const bungieRoute = require("./routes/bungieRouter");
 app.use("/bungie", bungieRoute);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 app.get('/api/*', (req, res) => {
   res.json({ok: true});

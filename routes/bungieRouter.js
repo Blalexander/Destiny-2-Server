@@ -2,13 +2,21 @@ const axios = require("axios");
 const express = require("express");
 const router = express.Router();
 
-// GET request to http://localhost:3000/loadout/ works
-router.get("/api/loadout", (req, res) => {
-  console.log(req.query.search)
+router.get("/", (req, res) => {
+  // console.log(req.query.mtype, req.query.mname)
+  console.log(req.query)
+  // console.log(req.params)
+  var mname = req.query.mname.replace("#", "%23");
+
+
+  let searchUrl = `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/${req.query.mtype}/${mname}`;
+  console.log(searchUrl);
+
   axios
     .get(
-      // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/${req.query.membsType}/${req.query.search}`,
-      `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/4/Girthquake%2311226`,
+      // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/${req.query.mtype}/${req.query.mname}`,
+      searchUrl,
+      // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/4/Girthquake%2311226`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -17,6 +25,7 @@ router.get("/api/loadout", (req, res) => {
       }
     )
     .then(payload => {
+      // console.log(payload.data)
       res.json(payload.data);
       // getGuardianIds(payload.data);
     })
