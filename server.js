@@ -1,7 +1,13 @@
+require("dotenv").config();
+
+
 const express = require('express');
 const axios = require('axios');
 const app = express();
 const cors = require('cors');
+const morgan = require('morgan');
+
+app.use(morgan('common'));
 
 app.use(express.static("public"));
 app.use(cors());
@@ -10,12 +16,13 @@ app.use(cors());
 const bungieRoute = require("./routes/bungieRouter");
 app.use("/bungie", bungieRoute);
 
-const PORT = process.env.PORT || 8080;
+// const PORT = process.env.PORT || 8080;
 
 app.get('/api/*', (req, res) => {
   res.json({ok: true});
 });
 
+const { PORT } = require("./config");
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 
 
