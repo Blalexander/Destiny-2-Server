@@ -1,8 +1,11 @@
+'use strict';
 const axios = require("axios");
 const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
 const { PGCR } = require("./models");
+const bodyParser = require("body-parser");
+const jsonParser = bodyParser.json();
 
 mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone", function(err) {
     if (err) {
@@ -68,12 +71,33 @@ router.get("/second", (req, res) => {
   });
 })
 
-router.get('/hope', (req, res) => {
-  // console.log(req.body);
-  const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
 
-  myCursor.then(load => res.json(load))
+
+
+
+
+router.get('/hope', jsonParser, (req, res) => {
+  // console.log(req.body);
+  // const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
+  // const myCursor = PGCR.find({}, {period: 1}); //returns IDs of containing object
+  // const myCursor = PGCR.find({}, {referenceId: 2047813119}); 
+
+  // myCursor
+  // return PGCR.find({}, {referenceId: 2047813119})
+
+  PGCR.find({}, {masterArr: { $slice: 5 }})
+    .then(load => {
+      res.json(load);
+      console.log(load);
+    })
+    .catch(err => res.status(500).json({ message: 'Something went wrong' }));
 })
+
+
+
+
+
+
 
 function getAllDaStuff(something) {
   allGames = [];
@@ -184,5 +208,8 @@ router.get("/first", (req, res) => {
     });
 });
 
+// router.use('*', function (req, res) {
+//   res.status(404).json({ message: 'Not Found' });
+// });
 
 module.exports = router;
