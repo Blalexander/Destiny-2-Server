@@ -1,7 +1,6 @@
 const axios = require("axios");
 const express = require("express");
 const mongoose = require("mongoose");
-// mongoose.Promise = global.Promise;
 const router = express.Router();
 const { PGCR } = require("./models");
 
@@ -13,10 +12,13 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
     }
 });
 
+const pg = PGCR();
 
 router.get("/second", (req, res) => {
+  // const pg = PGCR();
   keepTrackOfHowMany = 0;
   allResponses = [];
+  let saveThis;
   axios
   .get(
     `https://www.bungie.net/Platform/Destiny2/${req.query.mtype}/Account/${req.query.mid}/Character/${req.query.chid}/Stats/Activities/?mode=5&count=5`,
@@ -28,54 +30,35 @@ router.get("/second", (req, res) => {
     }
   )
   .then(payload => {
-    // res.json(payload.data);
     keepTrackOfHowMany = payload.data.Response.activities.length;
-    console.log("KTOHM: ", keepTrackOfHowMany); //sending three of these before next .then fires
-    // console.log(payload.data);
-
-    // return payload.data;
-  // })
-  // .then(newPayload => {
+    console.log("KTOHM: ", keepTrackOfHowMany);
     payload.data.Response.activities.forEach(activity => {
       allResponses.push(activity.activityDetails.referenceId);
     })
     console.log("allResponses: ", allResponses);
-    // res.json(allResponses);
-    return allResponses;
+    saveThis = allResponses;
+    return saveThis;
     //responds with an array of reference Ids
   })
   .then(activityArrayPayload => 
     getAllDaStuff(activityArrayPayload)
-    // newItem.then(function(result) {
-    //   let newResult = result;
-    //   return(newResult);
-    // })
-    // console.log("newItem: ", newItem);
-    // if(newItem.resolve(1)) {
-    //   return(newItem);
-    // }
   )
   .then(payload => {
     console.log("got here last");
     // res.json(payload);
-    const pg = new PGCR();
-    // pg.masterArr = "hello";
-    // pg.insert
 
-    let insertionObj = {masterArr: payload};
-    pg.collection.insert(insertionObj, onInsert);
-  
+    // const pg = new PGCR();
+    let insertionObj = {gamesPlayed: saveThis, masterArr: payload};
+
+    return pg.collection.insert(insertionObj, onInsert);
   
     function onInsert(err, docs) {
       if (err) {
         console.log("Error!", err);
       } else {
-        console.info("loadouts were successfully stored.", docs.length);
+        console.info("PGCRs were successfully stored.", docs.length);
       }
     }
-
-    // axios
-    //   .post(`/${payload}`);
   })
   .catch(err => {
     console.error(err);
@@ -85,7 +68,12 @@ router.get("/second", (req, res) => {
   });
 })
 
+router.get('/hope', (req, res) => {
+  // console.log(req.body);
+  const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
 
+  myCursor.then(load => res.json(load))
+})
 
 function getAllDaStuff(something) {
   allGames = [];
@@ -103,16 +91,9 @@ function getAllDaStuff(something) {
       )
       .then(payload => {
         console.log(payload.data.Response.period);
-        // return payload.data;
-        // return payload.data;
-        // let newItem = payload.data;
         allGames.push(payload.data);
         console.log("KTOHM: ", keepTrackOfHowMany, "allGames: ", allGames.length);
-        // return allGames;
-        // if(keepTrackOfHowMany == allGames.length) {
-
-          return(allGames);
-        // }
+        return(allGames);
       })
       .then(payload => {
         if(keepTrackOfHowMany == payload.length) {
@@ -123,7 +104,6 @@ function getAllDaStuff(something) {
       .catch(err => {
         allGames.push("404");
         console.log("Throwing a 404!");
-        // console.error(err);
         res.status(500).json({
           message: "Something went wrong while querying Bungie"
         })
@@ -205,21 +185,4 @@ router.get("/first", (req, res) => {
 });
 
 
-router.post('/', (req, res) => { //POST functioning
-  console.log(req.params);
-  let insertionObj = {masterArr: req.params.pload};
-  const itemz = PGCR.collection.insert(insertionObj, onInsert);
-
-
-  function onInsert(err, docs) {
-    if (err) {
-      console.log("Error!", err);
-    } else {
-      console.info("loadouts were successfully stored.", docs.length);
-    }
-  }
-  res.status(201).json(itemz);
-});
-
 module.exports = router;
-// module.exports = { PGCR };
