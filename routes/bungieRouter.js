@@ -15,8 +15,15 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
     }
 });
 
+
+let keepTrackOfHowMany = 0;
+let allResponses = [];
+let allGames = [];
+
 const pg = PGCR();
 
+// getSecond(4, 4611686018470723268, 2305843009301006557);
+// function getSecond(mtype, mid, chid) {
 router.get("/second", (req, res) => {
   // const pg = PGCR();
   keepTrackOfHowMany = 0;
@@ -33,73 +40,52 @@ router.get("/second", (req, res) => {
     }
   )
   .then(payload => {
+    // console.log(payload.data);
     keepTrackOfHowMany = payload.data.Response.activities.length;
     console.log("KTOHM: ", keepTrackOfHowMany);
     payload.data.Response.activities.forEach(activity => {
-      allResponses.push(activity.activityDetails.referenceId);
+      allResponses.push(activity.activityDetails.instanceId);
     })
     console.log("allResponses: ", allResponses);
     saveThis = allResponses;
     return saveThis;
-    //responds with an array of reference Ids
+    //responds with an array of instance Ids
   })
   .then(activityArrayPayload => 
     getAllDaStuff(activityArrayPayload)
   )
   .then(payload => {
     console.log("got here last");
-    // res.json(payload);
 
-    // const pg = new PGCR();
-    let insertionObj = {gamesPlayed: saveThis, masterArr: payload};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    // let insertionObj = {gamesPlayed: saveThis, masterArr: payload};
 
-    return pg.collection.insert(insertionObj, onInsert);
+    // pg.collection.insert(insertionObj, onInsert);
   
-    function onInsert(err, docs) {
-      if (err) {
-        console.log("Error!", err);
-      } else {
-        console.info("PGCRs were successfully stored.", docs.length);
-      }
-    }
+    // function onInsert(err, docs) {
+    //   if (err) {
+    //     console.log("Error!", err);
+    //   } else {
+    //     console.info("PGCRs were successfully stored.", docs.length);
+    //   }
+    // }
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    res.json(payload);
   })
-  .catch(err => {
-    console.error(err);
-    res.status(500).json({
-      message: "Something went wrong while querying Bungie"
-    });
-  });
-})
+  // .catch(err => {
+  //   console.error(err);
+  //   res.status(500).json({
+  //     message: "Something went wrong while querying Bungie"
+  //   });
+  // });
+})/*?+*/
 
 
-
-
-
-
-router.get('/hope', jsonParser, (req, res) => {
-  // console.log(req.body);
-  // const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
-  // const myCursor = PGCR.find({}, {period: 1}); //returns IDs of containing object
-  // const myCursor = PGCR.find({}, {referenceId: 2047813119}); 
-
-  // myCursor
-  // return PGCR.find({}, {referenceId: 2047813119})
-
-  PGCR.find({}, {masterArr: { $slice: 5 }})
-    .then(load => {
-      res.json(load);
-      console.log(load);
-    })
-    .catch(err => res.status(500).json({ message: 'Something went wrong' }));
-})
-
-
-
-
-
-
-
+// let theArrrr = [ 1153409123, 1815340083, 399506119, 806094750, 2748633318 ];
+// getAllDaStuff(theArrrr);
 function getAllDaStuff(something) {
+  console.log(something);
   allGames = [];
   return new Promise(function(resolve, reject) {
     something.forEach(refId => {
@@ -114,9 +100,54 @@ function getAllDaStuff(something) {
         }
       )
       .then(payload => {
-        console.log(payload.data.Response.period);
-        allGames.push(payload.data);
-        console.log("KTOHM: ", keepTrackOfHowMany, "allGames: ", allGames.length);
+        console.log(payload.data.Response);
+ 
+        let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
+        let entriesForPGCR = payload.data.Response.entries
+        let bigArray = [];
+
+        entriesForPGCR.forEach(entry => {
+          let nameForPGCR = entry.characterId;
+          bigArray.push(nameForPGCR);
+
+          PGCR.findOne({characterId: nameForPGCR}).then(load => {
+            if(load === null) { //inserts if not there
+              console.log(nameForPGCR, " has no record.  Inserting record now.");
+              // let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR], gameEntries: entry};
+              let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR]};
+              let insertionFunction = pg.collection.insert(insertionObj);
+            
+              insertionFunction.then(heyo => {return heyo});
+              // function onInsert(err) {
+              //   if (err) {
+              //     console.log("Error!", err);
+              //   } else {
+              //     console.info("PGCRs were successfully stored.");
+              //   }
+              // }
+            }
+            else if(load.referenceIdsForGamesPlayed.includes(refIdForPGCR)) { 
+              console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
+              pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+              // console.log("Game already in character's history!");
+            }
+            else { //updates if account present but no ref id yet
+              console.log("Record found for account, updating history now!");
+              pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+            }
+            return bigArray;
+          })///////////////////////////////////////THAT ALL WORKS ^, NOW, CONDENSE RESULTS AFTER EACH TIMES IT'S RUN //OR MAKE EACH SAVE A PROMISE AND AVOID ANY CHECKING AFTERWARD (BETTEREST?)
+          .then(biggie => {
+            biggie.forEach(charId => {
+              PGCR.find({characterId: charId}).then(loads => {
+                if(loads.length > 1) {
+                  pg.collection.update({characterId: charId}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+                }
+              })
+            })
+          })
+        })
+
         return(allGames);
       })
       .then(payload => {
@@ -126,24 +157,106 @@ function getAllDaStuff(something) {
         }
       })
       .catch(err => {
-        allGames.push("404");
-        console.log("Throwing a 404!");
-        res.status(500).json({
+        console.error(err);
+        err.status(500).json({
           message: "Something went wrong while querying Bungie"
-        })
-        return(allGames);
+        });
       });
     })
   })
-}
+}//?
+
+//YO THE CHARACTERID YOU'RE USING IS PROBABLY FOR THE OVERALL ACCOUNT/THE ID IS WRONG
+
+// getFromDB();
+// function getFromDB() {
+router.get('/hope', jsonParser, (req, res) => {
+  // console.log(req.body);
+  // const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
+  // const myCursor = PGCR.find({}, {period: 1}); //returns IDs of containing object
+  // const myCursor = PGCR.find({}, {referenceId: 2047813119}); 
+
+  // myCursor
+  // PGCR.find({}, {referenceId: 2047813119})
+  // PGCR.find({}, {displayName: "sirDumpsalot"})
+  // PGCR.find({characterId: "2305843009403725857"}) // GETS ENTIRE CHARACTER OBJECT
+  // let myCursor = PGCR.find({characterId: "2305843009301006557"}); // GETS ENTIRE CHARACTER OBJECT RETURNS NULL
+  // PGCR.find({}, {masterArr: { $slice: 2 }})
+  // myCursor;
+  // myCursor.then(load => {
+    // load === null ? console.log("null!") : console.log("oh yeah1!");
+    // load === undefined ? console.log("undefined!") : console.log("oh yeah2!");
+
+  const thisItem = pg.collection.aggregate(
+    [
+      {
+        $match: {characterId: "2305843009301006557"}
+      },
+      {
+        $group: {
+          characterId:'$characterId',
+          referenceIdsForGamesPlayed:{$addToSet: '$referenceIdsForGamesPlayed'}
+        }
+      },
+      {
+        $project: {
+          "characterId":1,
+          "referenceIdsForGamesPlayed":1
+        }
+      }
+    ]
+  );
+
+  return thisItem;
+    // console.log(load);
+  // })
+  // .catch(err => res.status(500).json({err}));
+})
 
 
-let keepTrackOfHowMany = 0;
+
+
+
+
+
+// function getAllDaStuff(something) {
+//   allGames = [];
+//   return new Promise(function(resolve, reject) {
+//     something.forEach(refId => {
+//       axios
+//       .get(
+//         `https://www.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/${refId}/`,
+//         {
+//           headers: {
+//             "Content-Type": "application/json",
+//             "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+//           }
+//         }
+//       )
+//       .then(payload => {
+//         console.log(payload.data.Response.period);
+//         allGames.push(payload.data);
+//         console.log("KTOHM: ", keepTrackOfHowMany, "allGames: ", allGames.length);
+//         return(allGames);
+//       })
+//       .then(payload => {
+//         if(keepTrackOfHowMany == payload.length) {
+//           console.log("resolving payload");
+//           resolve(payload);
+//         }
+//       })
+//       .catch(err => {
+//         allGames.push("404");
+//         console.log("Throwing a 404!");
+//         return(allGames);
+//       });
+//     })
+//   })
+// }
+
 
 let firstResponse;
 let secondResponse;
-let allResponses = [];
-let allGames = [];
 let membershipType;
 let membershipId;
 

@@ -3,9 +3,15 @@
 const mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
 
+// const pgcrSchema = mongoose.Schema({
+//   saveThis: Array,
+//   masterArr: Array
+// });
+
 const pgcrSchema = mongoose.Schema({
-  saveThis: Array,
-  masterArr: Array
+  characterId: String,
+  referenceIdsForGamesPlayed: Array,
+  // gameEntries: Object
 });
 
 pgcrSchema.pre('find', function(next) {
