@@ -76,7 +76,7 @@ router.get('/hope', jsonParser, (req, res) => {
 
 
 
-  let myCursor = PGCR.find({characterId: "2305843009301006557"}); // GETS ENTIRE CHARACTER OBJECT RETURNS NULL
+  let myCursor = PGCR.find({characterId: "2305843009301006557"});
   myCursor.then(load => {
     res.json(load);
   })
@@ -147,7 +147,7 @@ function getAllDaStuff(something) {
               // let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR]};
               
               let editedEntry = {[refIdForPGCR]: entry};
-              let insertionObj = {characterId: nameForPGCR, gameEntries: editedEntry};
+              let insertionObj = {characterId: nameForPGCR, gameEntries: [editedEntry]};
               let insertionItem = await pg.collection.insert(insertionObj);
                 
               console.log("wasnt there!");
@@ -162,15 +162,16 @@ function getAllDaStuff(something) {
 
               // return console.log("wasnt there!");
             }
-            else if(load.gameEntries.includes(refIdForPGCR)) { 
-              console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
-              // pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+            // else if(load.gameEntries.includes(refIdForPGCR)) { 
+            //   console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
+            //   // pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
               
-              return console.log("was there!");
-            }
+            //   return console.log("was there!");
+            // }
             else {
               console.log("Record found for account ID: " + nameForPGCR + " updating history now!");
-              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+              let editedEntry = {[refIdForPGCR]: entry};
+              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {gameEntries: editedEntry}});
               console.log("was there x2!");
               updateItem;
             }

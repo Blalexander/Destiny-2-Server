@@ -11,7 +11,7 @@ mongoose.Promise = global.Promise;
 const pgcrSchema = mongoose.Schema({
   characterId: String,
   // referenceIdsForGamesPlayed: Array,
-  gameEntries: Object
+  gameEntries: Array
 });
 
 pgcrSchema.pre('find', function(next) {
