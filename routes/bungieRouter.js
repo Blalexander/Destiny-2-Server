@@ -55,12 +55,12 @@ router.get("/second", (req, res) => {
     console.log("got here last");
     res.json(payload);
   })
-  // .catch(err => {
-  //   console.error(err);
-  //   res.status(500).json({
-  //     message: "Something went wrong while querying Bungie"
-  //   });
-  // });
+  .catch(err => {
+    console.error(err);
+    res.status(500).json({
+      message: "Something went wrong while querying Bungie"
+    });
+  });
 })
 
 router.get('/hope', jsonParser, (req, res) => {
@@ -141,10 +141,12 @@ function getAllDaStuff(something) {
           let nameForPGCR = entry.characterId;
           bigArray.push(nameForPGCR);
 
+          //TWO STAGES.  first inserts all, then second updates any that need it.
+
+
           await PGCR.findOne({characterId: nameForPGCR}).then(async function(load) {
             if(load === null) {
               console.log(nameForPGCR, " has no record.  Inserting record now.");
-              // let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR]};
               
               let editedEntry = {[refIdForPGCR]: entry};
               let insertionObj = {characterId: nameForPGCR, gameEntries: [editedEntry]};
@@ -152,22 +154,11 @@ function getAllDaStuff(something) {
                 
               console.log("wasnt there!");
               insertionItem;
-              // function onInsert(err) {
-              //   if (err) {
-              //     console.log("Error!", err);
-              //   } else {
-              //     console.info("PGCRs were successfully stored.");
-              //   }
-              // }
-
-              // return console.log("wasnt there!");
             }
-            // else if(load.gameEntries.includes(refIdForPGCR)) { 
-            //   console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
-            //   // pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
-              
-            //   return console.log("was there!");
-            // }
+            else if(load.gameEntries.includes(refIdForPGCR)) { 
+              console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
+              return console.log("was there!");
+            }
             else {
               console.log("Record found for account ID: " + nameForPGCR + " updating history now!");
               let editedEntry = {[refIdForPGCR]: entry};
@@ -185,6 +176,7 @@ function getAllDaStuff(something) {
       })
       .then(() => {
         console.log("bigArray.unique", bigArray.unique().length);
+        resolve("heyo");
       })
       .catch(err => {
         console.error(err);
