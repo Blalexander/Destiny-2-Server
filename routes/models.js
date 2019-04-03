@@ -10,8 +10,8 @@ mongoose.Promise = global.Promise;
 
 const pgcrSchema = mongoose.Schema({
   characterId: String,
-  referenceIdsForGamesPlayed: Array,
-  // gameEntries: Object
+  // referenceIdsForGamesPlayed: Array,
+  gameEntries: Object
 });
 
 pgcrSchema.pre('find', function(next) {

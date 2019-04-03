@@ -141,12 +141,17 @@ function getAllDaStuff(something) {
           let nameForPGCR = entry.characterId;
           bigArray.push(nameForPGCR);
 
-          await PGCR.findOne({characterId: nameForPGCR}).then(load => {
+          await PGCR.findOne({characterId: nameForPGCR}).then(async function(load) {
             if(load === null) {
               console.log(nameForPGCR, " has no record.  Inserting record now.");
-              let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR]};
-              pg.collection.insert(insertionObj);
-            
+              // let insertionObj = {characterId: nameForPGCR, referenceIdsForGamesPlayed: [refIdForPGCR]};
+              
+              let editedEntry = {[refIdForPGCR]: entry};
+              let insertionObj = {characterId: nameForPGCR, gameEntries: editedEntry};
+              let insertionItem = await pg.collection.insert(insertionObj);
+                
+              console.log("wasnt there!");
+              insertionItem;
               // function onInsert(err) {
               //   if (err) {
               //     console.log("Error!", err);
@@ -155,20 +160,23 @@ function getAllDaStuff(something) {
               //   }
               // }
 
-              return console.log("wasnt there!");
+              // return console.log("wasnt there!");
             }
-            else if(load.referenceIdsForGamesPlayed.includes(refIdForPGCR)) { 
+            else if(load.gameEntries.includes(refIdForPGCR)) { 
               console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
-              pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+              // pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
               
               return console.log("was there!");
             }
             else {
               console.log("Record found for account ID: " + nameForPGCR + " updating history now!");
-              pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
-
-              return console.log("was there x2!");
+              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {referenceIdsForGamesPlayed: refIdForPGCR}});
+              console.log("was there x2!");
+              updateItem;
             }
+          })
+          .then(() => {
+            console.log("anotha one");
           })
         }
 
