@@ -76,39 +76,74 @@ router.get('/hope', jsonParser, (req, res) => {
 
 
 
-  let myCursor = PGCR.find({characterId: "2305843009301006557"});
-  myCursor.then(load => {
-    res.json(load);
-  })
-  .catch(err => res.status(500).json({err}));
+  // let myCursor = PGCR.find({characterId: "2305843009301006557"});
+  // myCursor.then(load => {
+  //   const charObj = load[0].gameEntries.map(entree => {
+  //     entree
+  //   })
+  //   // console.log(load[0].gameEntries);
+  //   res.json(charObj);
+  //   // return charObj
+  //   // console.log(charObj);
+  // })
+  // // .then(newObj => {
+  // //   // res.json(newObj)
+  // //   console.log(newObj)
+  // // })
+  // .catch(err => res.status(500).json({err}));
 
+
+  // {
+  //   characterId: "2305843009301006557"
+  // }
+
+  // {
+  //   path: "$gameEntries",
+  //   includeArrayIndex: "arrayIndex"
+  // }
+
+  // {
+  //   _id: "$arrayIndex",
+  //   entries: {
+  //     // $push: "$gameEntries.3416520146"
+  //     $push: "$"
+  //   }
+  // }
 
 
     // load === null ? console.log("null!") : console.log("oh yeah1!");
     // load === undefined ? console.log("undefined!") : console.log("oh yeah2!");
 
-  // const thisItem = pg.collection.aggregate(
-  //   [
-  //     {
-  //       $match: {characterId: "2305843009301006557"}
-  //     },
-  //     {
-  //       $group: {
-  //         characterId:'$characterId',
-  //         referenceIdsForGamesPlayed:{$addToSet: '$referenceIdsForGamesPlayed'}
-  //       }
-  //     }
-  //     // {
-  //     //   $project: {
-  //     //     "characterId":1,
-  //     //     "referenceIdsForGamesPlayed":1
-  //     //   }
-  //     // }
-  //   ]
-  // );
+  const thisItem = PGCR.aggregate(
+    [
+      {
+        $match: {characterId: "2305843009301006557"}
+      },
+      // {
+      //   $unwind: "$gameEntries.score.basic"
+      // },
+      // {
+      //   $match: {}
+      // }
+      {
+        $group: {
+          _id:"$characterId",
+          entriess: {
+            $mergeObjects: "$score"
+          }
+        }
+      },
+      // {
+      //   $project: {
+      //     "characterId":1,
+      //     "scores":1
+      //   }
+      // }
+    ]
+  )
 
   // console.log(thisItem);
-  // return thisItem;
+  thisItem.then(loadr => res.json(loadr));
 });
 
 let bigArray = [];
@@ -148,8 +183,9 @@ function getAllDaStuff(something) {
             if(load === null) {
               console.log(nameForPGCR, " has no record.  Inserting record now.");
               
-              let editedEntry = {[refIdForPGCR]: entry};
-              let insertionObj = {characterId: nameForPGCR, gameEntries: [editedEntry]};
+              entry["gameInstanceId"] = refIdForPGCR;
+              // let editedEntry = {[refIdForPGCR]: entry};
+              let insertionObj = {characterId: nameForPGCR, gameEntries: [entry]};
               let insertionItem = await pg.collection.insert(insertionObj);
                 
               console.log("wasnt there!");
@@ -161,8 +197,9 @@ function getAllDaStuff(something) {
             }
             else {
               console.log("Record found for account ID: " + nameForPGCR + " updating history now!");
-              let editedEntry = {[refIdForPGCR]: entry};
-              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {gameEntries: editedEntry}});
+              // let editedEntry = {[refIdForPGCR]: entry};
+              entry["gameInstanceId"] = refIdForPGCR;
+              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {gameEntries: entry}});//left off here
               console.log("was there x2!");
               updateItem;
             }
