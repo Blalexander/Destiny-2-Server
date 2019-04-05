@@ -19,13 +19,14 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
 let keepTrackOfHowMany = 0;
 let allResponses = [];
 let allGames = [];
-
+let childId;
 const pg = PGCR();
 
 router.get("/second", (req, res) => {
   keepTrackOfHowMany = 0;
   allResponses = [];
   let saveThis;
+  childId = req.query.chid;
   axios
   .get(
     `https://www.bungie.net/Platform/Destiny2/${req.query.mtype}/Account/${req.query.mid}/Character/${req.query.chid}/Stats/Activities/?mode=5&count=5`,
@@ -63,19 +64,8 @@ router.get("/second", (req, res) => {
   });
 })
 
+
 router.get('/hope', jsonParser, (req, res) => {
-  // console.log(req.body);
-  // const myCursor = PGCR.find({}, {gamesPlayed: { $slice: 2 }}); 
-  // const myCursor = PGCR.find({}, {period: 1}); //returns IDs of containing object
-  // const myCursor = PGCR.find({}, {referenceId: 2047813119}); 
-
-  // myCursor
-  // PGCR.find({}, {referenceId: 2047813119})
-  // PGCR.find({}, {displayName: "sirDumpsalot"})
-  // PGCR.find({characterId: "2305843009403725857"}) // GETS ENTIRE CHARACTER OBJECT
-
-
-
   // let myCursor = PGCR.find({characterId: "2305843009301006557"});
   // myCursor.then(load => {
   //   const charObj = load[0].gameEntries.map(entree => {
@@ -93,56 +83,21 @@ router.get('/hope', jsonParser, (req, res) => {
   // .catch(err => res.status(500).json({err}));
 
 
-  // {
-  //   characterId: "2305843009301006557"
-  // }
-
-  // {
-  //   path: "$gameEntries",
-  //   includeArrayIndex: "arrayIndex"
-  // }
-
-  // {
-  //   _id: "$arrayIndex",
-  //   entries: {
-  //     // $push: "$gameEntries.3416520146"
-  //     $push: "$"
-  //   }
-  // }
-
-
-    // load === null ? console.log("null!") : console.log("oh yeah1!");
-    // load === undefined ? console.log("undefined!") : console.log("oh yeah2!");
-
   const thisItem = PGCR.aggregate(
     [
       {
         $match: {characterId: "2305843009301006557"}
       },
-      // {
-      //   $unwind: "$gameEntries.score.basic"
-      // },
-      // {
-      //   $match: {}
-      // }
       {
-        $group: {
-          _id:"$characterId",
-          entriess: {
-            $mergeObjects: "$score"
-          }
+        $unwind: {
+          path: "$gameEntries",
+          includeArrayIndex: "arrayIndex",
+          preserveNullAndEmptyArrays: true
         }
       },
-      // {
-      //   $project: {
-      //     "characterId":1,
-      //     "scores":1
-      //   }
-      // }
     ]
   )
 
-  // console.log(thisItem);
   thisItem.then(loadr => res.json(loadr));
 });
 
@@ -213,7 +168,23 @@ function getAllDaStuff(something) {
       })
       .then(() => {
         console.log("bigArray.unique", bigArray.unique().length);
-        resolve("heyo");
+
+        const thisItem = PGCR.aggregate(
+          [
+            {
+              $match: {characterId: childId}
+            },
+            {
+              $unwind: {
+                path: "$gameEntries",
+                includeArrayIndex: "arrayIndex",
+                preserveNullAndEmptyArrays: true
+              }
+            },
+          ]
+        )
+      
+        thisItem.then(loadr => resolve(loadr));
       })
       .catch(err => {
         console.error(err);
