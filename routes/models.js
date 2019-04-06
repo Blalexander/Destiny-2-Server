@@ -9,9 +9,9 @@ mongoose.Promise = global.Promise;
 // });
 
 const pgcrSchema = mongoose.Schema({
-  characterId: String,
+  pgcrId: String,
   // referenceIdsForGamesPlayed: Array,
-  gameEntries: Array
+  game: Object
 });
 
 pgcrSchema.pre('find', function(next) {

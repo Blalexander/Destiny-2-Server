@@ -65,50 +65,11 @@ router.get("/second", (req, res) => {
 })
 
 
-router.get('/hope', jsonParser, (req, res) => {
-  // let myCursor = PGCR.find({characterId: "2305843009301006557"});
-  // myCursor.then(load => {
-  //   const charObj = load[0].gameEntries.map(entree => {
-  //     entree
-  //   })
-  //   // console.log(load[0].gameEntries);
-  //   res.json(charObj);
-  //   // return charObj
-  //   // console.log(charObj);
-  // })
-  // // .then(newObj => {
-  // //   // res.json(newObj)
-  // //   console.log(newObj)
-  // // })
-  // .catch(err => res.status(500).json({err}));
-
-
-  const thisItem = PGCR.aggregate(
-    [
-      {
-        $match: {characterId: "2305843009301006557"}
-      },
-      {
-        $unwind: {
-          path: "$gameEntries",
-          includeArrayIndex: "arrayIndex",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-    ]
-  )
-
-  thisItem.then(loadr => res.json(loadr));
-});
-
 let bigArray = [];
-
-
 
 function getAllDaStuff(something) {
   console.log(something);
   allGames = [];
-  let entryIterator = 0;
   return new Promise(function(resolve, reject) {
     something.forEach(refId => {
       axios
@@ -121,71 +82,42 @@ function getAllDaStuff(something) {
           }
         }
       )
-      .then(async function(payload) {
+      .then(payload => {
+        
         let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
-        let entriesForPGCR = payload.data.Response.entries;
+        let gameForPGCR = payload.data.Response
 
-        for (let entry of entriesForPGCR) {
-          console.log("start of FOR OF");
-          entryIterator++;
-          let nameForPGCR = entry.characterId;
-          bigArray.push(nameForPGCR);
-
-          //TWO STAGES.  first inserts all, then second updates any that need it.
-
-
-          await PGCR.findOne({characterId: nameForPGCR}).then(async function(load) {
-            if(load === null) {
-              console.log(nameForPGCR, " has no record.  Inserting record now.");
+        PGCR.findOne({pgcrId: refIdForPGCR})
+        .then(load => {
+          if(load === null) {
+            console.log(refIdForPGCR, " has no record.  Inserting record now.");
+            
+            let insertionObj = {pgcrId: refIdForPGCR, game: gameForPGCR};
+            pg.collection.insert(insertionObj, onInsert);
               
-              entry["gameInstanceId"] = refIdForPGCR;
-              // let editedEntry = {[refIdForPGCR]: entry};
-              let insertionObj = {characterId: nameForPGCR, gameEntries: [entry]};
-              let insertionItem = await pg.collection.insert(insertionObj);
-                
-              console.log("wasnt there!");
-              insertionItem;
-            }
-            else if(load.gameEntries.includes(refIdForPGCR)) { 
-              console.log("Record for " + refIdForPGCR + " in " + nameForPGCR + " found!");
-              return console.log("was there!");
-            }
-            else {
-              console.log("Record found for account ID: " + nameForPGCR + " updating history now!");
-              // let editedEntry = {[refIdForPGCR]: entry};
-              entry["gameInstanceId"] = refIdForPGCR;
-              let updateItem = await pg.collection.update({characterId: nameForPGCR}, {$push: {gameEntries: entry}});//left off here
-              console.log("was there x2!");
-              updateItem;
-            }
-          })
-          .then(() => {
-            console.log("anotha one");
-          })
-        }
+            console.log("wasnt there!");
 
-        return console.log("reached the end!", entryIterator);
-      })
-      .then(() => {
-        console.log("bigArray.unique", bigArray.unique().length);
-
-        const thisItem = PGCR.aggregate(
-          [
-            {
-              $match: {characterId: childId}
-            },
-            {
-              $unwind: {
-                path: "$gameEntries",
-                includeArrayIndex: "arrayIndex",
-                preserveNullAndEmptyArrays: true
+            function onInsert(err, docs) {
+              if (err) {
+                console.log("Error!", err);
+              } else {
+                console.info("loadouts were successfully stored.", docs.length);
               }
-            },
-          ]
-        )
-      
-        thisItem.then(loadr => resolve(loadr));
+            }
+          }
+          else { 
+            console.log("Record for " + refIdForPGCR + " found!");
+            return console.log("was there!");
+          }
+          })
       })
+      // .then(() => {
+      //   let myCursor = PGCR.find({pgcrId: "3416381545"});
+      //   myCursor.then(load => {
+      //     res.json(load);
+      //   })
+      //   .catch(err => res.status(500).json({err}));
+      // })
       .catch(err => {
         console.error(err);
         err.status(500).json({
@@ -193,17 +125,47 @@ function getAllDaStuff(something) {
         });
       });
     })
+    resolve("finished");
   })
 }
 
-Array.prototype.unique = function() {
-  return this.filter(function (value, index, self) { 
-    return self.indexOf(value) === index;
-  });
-}
 
 
+router.get('/hope', jsonParser, (req, res) => {
+  // let myCursor = PGCR.find({pgcrId: "3416381545"});
+  // myCursor.then(load => {
+  //   res.json(load);
+  // })
+  // .catch(err => res.status(500).json({err}));
 
+
+  // {
+  //   pgcrId: "3416381545"
+  // }
+
+  // {
+  //   path: "$game.entries",
+  //   includeArrayIndex: '<<string>>',
+  //   preserveNullAndEmptyArrays: true
+  // }
+
+  const thisItem = PGCR.aggregate(
+    [
+      {
+        $match: {pgcrId: "3416381545"}
+      },
+      {
+        $unwind: {
+          path: "$game.entries",
+          includeArrayIndex: "arrayIndex",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+    ]
+  )
+
+  thisItem.then(loadr => res.json(loadr));
+});
 
 
 
