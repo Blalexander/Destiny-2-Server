@@ -39,23 +39,24 @@ router.get("/second", (req, res) => {
   )
   .then(payload => {
     // console.log(payload.data);
-    keepTrackOfHowMany = payload.data.Response.activities.length;
-    console.log("KTOHM: ", keepTrackOfHowMany);
-    payload.data.Response.activities.forEach(activity => {
-      allResponses.push(activity.activityDetails.instanceId);
-    })
-    console.log("allResponses: ", allResponses);
-    saveThis = allResponses;
-    return saveThis;
+    res.json(payload.data)
+    // keepTrackOfHowMany = payload.data.Response.activities.length;
+    // console.log("KTOHM: ", keepTrackOfHowMany);
+    // payload.data.Response.activities.forEach(activity => {
+    //   allResponses.push(activity.activityDetails.instanceId);
+    // })
+    // console.log("allResponses: ", allResponses);
+    // saveThis = allResponses;
+    // return saveThis;
     //responds with an array of instance Ids
   })
-  .then(activityArrayPayload => 
-    getAllDaStuff(activityArrayPayload)
-  )
-  .then(payload => {
-    console.log("got here last");
-    res.json(payload);
-  })
+  // .then(activityArrayPayload => 
+  //   getAllDaStuff(activityArrayPayload)
+  // )
+  // .then(payload => {
+  //   console.log("got here last");
+  //   res.json(payload);
+  // })
   .catch(err => {
     console.error(err);
     res.status(500).json({
@@ -83,39 +84,43 @@ function getAllDaStuff(something) {
         }
       )
       .then(payload => {
-        
-        let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
-        let gameForPGCR = payload.data.Response
-
-        PGCR.findOne({pgcrId: refIdForPGCR})
-        .then(load => {
-          if(load === null) {
-            console.log(refIdForPGCR, " has no record.  Inserting record now.");
-            
-            let insertionObj = {pgcrId: refIdForPGCR, game: gameForPGCR};
-            pg.collection.insert(insertionObj, onInsert);
-              
-            console.log("wasnt there!");
-
-            function onInsert(err, docs) {
-              if (err) {
-                console.log("Error!", err);
-              } else {
-                console.info("loadouts were successfully stored.", docs.length);
-              }
-            }
-          }
-          else { 
-            console.log("Record for " + refIdForPGCR + " found!");
-            return console.log("was there!");
-          }
-          })
+        allGames.push(payload.data);
       })
+        
+      //   let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
+      //   let gameForPGCR = payload.data.Response
+
+      //   PGCR.findOne({pgcrId: refIdForPGCR})
+      //   .then(load => {
+      //     if(load === null) {
+      //       console.log(refIdForPGCR, " has no record.  Inserting record now.");
+            
+      //       let insertionObj = {pgcrId: refIdForPGCR, game: gameForPGCR};
+      //       pg.collection.insert(insertionObj, onInsert);
+              
+      //       console.log("wasnt there!");
+
+      //       function onInsert(err, docs) {
+      //         if (err) {
+      //           console.log("Error!", err);
+      //         } else {
+      //           console.info("loadouts were successfully stored.", docs.length);
+      //         }
+      //       }
+      //     }
+      //     else { 
+      //       console.log("Record for " + refIdForPGCR + " found!");
+      //       return console.log("was there!");
+      //     }
+      //     })
+      // })
       // .then(() => {
       //   let myCursor = PGCR.find({pgcrId: "3416381545"});
       //   myCursor.then(load => {
       //     res.json(load);
       //   })
+      //   //find if any other games associated with chids, return them
+      //   //.then return overall stats for community scores
       //   .catch(err => res.status(500).json({err}));
       // })
       .catch(err => {
