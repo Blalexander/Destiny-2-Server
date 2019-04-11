@@ -182,6 +182,7 @@ let membershipId;
 
 
 router.get("/first", (req, res) => {
+  allResponses = [];
   console.log("req.query", req.query)
   var mname = req.query.mname.replace("#", "%23");
 
@@ -206,14 +207,10 @@ router.get("/first", (req, res) => {
       membershipType = firstResponse[0].membershipType;
       membershipId = firstResponse[0].membershipId;
       console.log(membershipType, membershipId);
-    
-      //RES .JSON SOMEWHERE
 
       axios
       .get(
         `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=200`,
-        // searchUrl,
-        // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/4/Girthquake%2311226`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -224,8 +221,29 @@ router.get("/first", (req, res) => {
       .then(payload2 => {
         secondResponse = payload2.data.Response;
         let nameAndCharacters = Object.assign({}, firstResponse, secondResponse);
-        res.json(nameAndCharacters);
+        allResponses.push(nameAndCharacters);
+        return nameAndCharacters;
+        // res.json(nameAndCharacters);
       })
+      .then(async function(payload3) {
+        let idHolder = Object.keys(payload3.characters.data);
+        console.log("idHolder: ", idHolder);
+        await Promise.all(idHolder.map(async (chidd) => {
+          await axios
+          .get(
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+              }
+            }
+          )
+          .then(payload5 => allResponses.push(payload5.data))
+        }))
+        return allResponses;
+      })
+      .then(finalPayload => res.json(finalPayload))
       .catch(err => {
         console.error(err);
         res.status(500).json({
@@ -240,5 +258,28 @@ router.get("/first", (req, res) => {
         });
     });
 });
+
+function getTheStuff(allCharacterData) {
+  let idHolder = Object.keys(allCharacterData.characters.data);
+  console.log("idHolder: ", idHolder);
+  idHolder.forEach(chidd => {
+    axios
+    .get(
+      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+        }
+      }
+    )
+    .then(payload4 => {
+      allResponses.push(payload4.data);
+      console.log("check check", allResponses)
+      // return(allResponses);
+    })
+  })
+  return allResponses;
+}
 
 module.exports = router;
