@@ -19,6 +19,7 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
 let keepTrackOfHowMany = 0;
 let allResponses = [];
 let allGames = [];
+let allInstanceIds = [];
 let childId;
 const pg = PGCR();
 
@@ -69,7 +70,7 @@ router.get("/second", (req, res) => {
 let bigArray = [];
 
 function getAllDaStuff(something) {
-  console.log(something);
+  console.log("something: ", something);
   allGames = [];
   return new Promise(function(resolve, reject) {
     something.forEach(refId => {
@@ -85,6 +86,7 @@ function getAllDaStuff(something) {
       )
       .then(payload => {
         allGames.push(payload.data);
+        console.log(allGames);
       })
         
       //   let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
@@ -130,7 +132,8 @@ function getAllDaStuff(something) {
         });
       });
     })
-    resolve("finished");
+    // return allGames;
+    resolve(allGames);
   })
 }
 
@@ -183,6 +186,8 @@ let membershipId;
 
 router.get("/first", (req, res) => {
   allResponses = [];
+  allGames = [];
+  let saveThis;
   console.log("req.query", req.query)
   var mname = req.query.mname.replace("#", "%23");
 
@@ -191,7 +196,7 @@ router.get("/first", (req, res) => {
 
   axios
     .get(
-      // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/${req.query.mtype}/${req.query.mname}`,
+      // `https://www.bungie.net/Platform/Destiny2/4/Account/4611686018468446032/Character/2305843009301017785/Stats/AggregateActivityStats/`,
       searchUrl,
       // `https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/4/Girthquake%2311226`,
       {
@@ -221,7 +226,7 @@ router.get("/first", (req, res) => {
       .then(payload2 => {
         secondResponse = payload2.data.Response;
         let nameAndCharacters = Object.assign({}, firstResponse, secondResponse);
-        allResponses.push(nameAndCharacters);
+        allGames.push(nameAndCharacters);
         return nameAndCharacters;
         // res.json(nameAndCharacters);
       })
@@ -239,9 +244,30 @@ router.get("/first", (req, res) => {
               }
             }
           )
-          .then(payload5 => allResponses.push(payload5.data))
+          .then(payload5 => {
+            payload5.data.Response.activities.forEach(activity => {
+            allResponses.push(activity.activityDetails.instanceId);
+          })})
         }))
         return allResponses;
+      })
+
+      .then(async function(activityArrayPayload) {
+        await Promise.all(activityArrayPayload.map(async (refId) => {
+          await axios
+          .get(
+            `https://www.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/${refId}/`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+              }
+            }
+          )
+          .then(activityArrayResponsePayload => allGames.push(activityArrayResponsePayload.data))
+        }))
+        // allResponses.push(allGames);
+        return allGames;
       })
       .then(finalPayload => res.json(finalPayload))
       .catch(err => {
