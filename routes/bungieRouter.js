@@ -140,12 +140,11 @@ function getAllDaStuff(something) {
 
 
 router.get('/hope', jsonParser, (req, res) => {
-  // PGCR.findOne({pgcrId: refIdForPGCR})
-  let myCursor = PGCR.find({"game.Response.activityDetails.instanceId": "3149745404"});
-  myCursor.then(load => {
-    res.json(load);
-  })
-  .catch(err => res.status(500).json({err}));
+  // let myCursor = PGCR.find({"game.Response.activityDetails.instanceId": "3149745404"});
+  // myCursor.then(load => {
+  //   res.json(load);
+  // })
+  // .catch(err => res.status(500).json({err}));
 
 
   // {
@@ -190,6 +189,7 @@ router.get("/first", (req, res) => {
   allResponses = [];
   allGames = [];
   finalResponse = [];
+  let revisedArray = [];
   let saveThis;
   console.log("req.query", req.query)
   var mname = req.query.mname.replace("#", "%23");
@@ -239,7 +239,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=8`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -255,7 +255,26 @@ router.get("/first", (req, res) => {
         return allResponses;
       })
 
+      .then(async function(checkEachRefId) {
+        console.log("checkEachRefId: ", checkEachRefId)
+        await Promise.all(checkEachRefId.map(async (eachId) => {
+          // let instId = "game.Response.activityDetails.instanceId";
+          await PGCR.findOne({"game.Response.activityDetails.instanceId": eachId})
+          .then(load => {
+            if(load === null) {
+              console.log(eachId, " has no record.  Keeping it in the array.");
+              revisedArray.push(eachId);
+            }
+            else { 
+              console.log("Record for " + eachId + " found!  Removing from array");
+            }
+          })
+        }))
+        return revisedArray
+      })
+
       .then(async function(activityArrayPayload) {
+        console.log("activityArrayPayload: ", activityArrayPayload)
         await Promise.all(activityArrayPayload.map(async (refId) => {
           await axios
           .get(
@@ -269,22 +288,22 @@ router.get("/first", (req, res) => {
           )
           .then(activityArrayResponsePayload => allGames.push(activityArrayResponsePayload.data))
         }))
-        return allGames; //NOW, save this shit and THEN return
+        return allGames;
       })
 
       .then(async function(payloadToBeSaved) {
         await Promise.all(payloadToBeSaved.map(async (eachGame) => {
           // let instId = "game.Response.activityDetails.instanceId";
-          let gameToFind = eachGame.Response.activityDetails.instanceId;
-          await PGCR.findOne({"game.Response.activityDetails.instanceId": gameToFind})
-          .then(load => {
-            if(load === null) {
-              console.log(gameToFind, " has no record.  Inserting record now.");
+          // let gameToFind = eachGame.Response.activityDetails.instanceId;
+          // await PGCR.findOne({"game.Response.activityDetails.instanceId": gameToFind})
+          // .then(load => {
+            // if(load === null) {
+              // console.log(gameToFind, " has no record.  Inserting record now.");
               
               let insertionObj = {game: eachGame};
               pg.collection.insert(insertionObj, onInsert);
                 
-              console.log("wasnt there!");
+              // console.log("wasnt there!");
   
               function onInsert(err, docs) {
                 if (err) {
@@ -293,12 +312,12 @@ router.get("/first", (req, res) => {
                   console.info("loadouts were successfully stored.", docs.length);
                 }
               }
-            }
-            else { 
-              console.log("Record for " + gameToFind + " found!");
-              return console.log("was there!");
-            }
-          })
+            // }
+            // else { 
+            //   console.log("Record for " + gameToFind + " found!");
+            //   return console.log("was there!");
+            // }
+          // })
         }))
       })
 
@@ -317,28 +336,5 @@ router.get("/first", (req, res) => {
         });
     });
 });
-
-function getTheStuff(allCharacterData) {
-  let idHolder = Object.keys(allCharacterData.characters.data);
-  console.log("idHolder: ", idHolder);
-  idHolder.forEach(chidd => {
-    axios
-    .get(
-      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
-        }
-      }
-    )
-    .then(payload4 => {
-      allResponses.push(payload4.data);
-      console.log("check check", allResponses)
-      // return(allResponses);
-    })
-  })
-  return allResponses;
-}
 
 module.exports = router;
