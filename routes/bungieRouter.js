@@ -146,33 +146,49 @@ router.get('/hope', jsonParser, (req, res) => {
   // })
   // .catch(err => res.status(500).json({err}));
 
-
+  // 346136302
   // {
-  //   pgcrId: "3416381545"
-  // }
-
-  // {
-  //   path: "$game.entries",
-  //   includeArrayIndex: '<<string>>',
+  //   path: "$game.Response.entries",
   //   preserveNullAndEmptyArrays: true
   // }
 
-  // const thisItem = PGCR.aggregate(
-  //   [
-  //     {
-  //       $match: {pgcrId: "3416381545"}
-  //     },
-  //     {
-  //       $unwind: {
-  //         path: "$game.entries",
-  //         includeArrayIndex: "arrayIndex",
-  //         preserveNullAndEmptyArrays: true
-  //       }
-  //     },
-  //   ]
-  // )
+  // {
+  //   path: "$game.Response.entries.extended.weapons",
+  //   preserveNullAndEmptyArrays: true
+  // }
 
-  // thisItem.then(loadr => res.json(loadr));
+  // {
+  //   "game.Response.entries.extended.weapons.referenceId": 346136302
+  // }
+
+  const thisItem = PGCR.aggregate(
+    [
+      {
+        $unwind:   {
+          path: "$game.Response.entries",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $unwind:   {
+          path: "$game.Response.entries.extended.weapons",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $match:   {
+          "game.Response.entries.extended.weapons.referenceId": 346136302
+        }
+      },
+      {
+        $group: {
+          _id: "$game.Response.entries.player.destinyUserInfo.displayName"
+        }
+      }
+    ]
+  )
+
+  thisItem.then(loadr => res.json(loadr));
 });
 
 
@@ -239,7 +255,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=6`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -293,31 +309,16 @@ router.get("/first", (req, res) => {
 
       .then(async function(payloadToBeSaved) {
         await Promise.all(payloadToBeSaved.map(async (eachGame) => {
-          // let instId = "game.Response.activityDetails.instanceId";
-          // let gameToFind = eachGame.Response.activityDetails.instanceId;
-          // await PGCR.findOne({"game.Response.activityDetails.instanceId": gameToFind})
-          // .then(load => {
-            // if(load === null) {
-              // console.log(gameToFind, " has no record.  Inserting record now.");
-              
-              let insertionObj = {game: eachGame};
-              pg.collection.insert(insertionObj, onInsert);
-                
-              // console.log("wasnt there!");
-  
-              function onInsert(err, docs) {
-                if (err) {
-                  console.log("Error!", err);
-                } else {
-                  console.info("loadouts were successfully stored.", docs.length);
-                }
-              }
-            // }
-            // else { 
-            //   console.log("Record for " + gameToFind + " found!");
-            //   return console.log("was there!");
-            // }
-          // })
+          let insertionObj = {game: eachGame};
+          pg.collection.insert(insertionObj, onInsert);
+
+          function onInsert(err, docs) {
+            if (err) {
+              console.log("Error!", err);
+            } else {
+              console.info("loadouts were successfully stored.", docs.length);
+            }
+          }
         }))
       })
 
