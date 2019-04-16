@@ -92,29 +92,29 @@ function getAllDaStuff(something) {
       //   let refIdForPGCR = payload.data.Response.activityDetails.instanceId;
       //   let gameForPGCR = payload.data.Response
 
-      //   PGCR.findOne({pgcrId: refIdForPGCR})
-      //   .then(load => {
-      //     if(load === null) {
-      //       console.log(refIdForPGCR, " has no record.  Inserting record now.");
+        // PGCR.findOne({pgcrId: refIdForPGCR})
+        // .then(load => {
+          // if(load === null) {
+          //   console.log(refIdForPGCR, " has no record.  Inserting record now.");
             
-      //       let insertionObj = {pgcrId: refIdForPGCR, game: gameForPGCR};
-      //       pg.collection.insert(insertionObj, onInsert);
+          //   let insertionObj = {pgcrId: refIdForPGCR, game: gameForPGCR};
+          //   pg.collection.insert(insertionObj, onInsert);
               
-      //       console.log("wasnt there!");
+          //   console.log("wasnt there!");
 
-      //       function onInsert(err, docs) {
-      //         if (err) {
-      //           console.log("Error!", err);
-      //         } else {
-      //           console.info("loadouts were successfully stored.", docs.length);
-      //         }
-      //       }
-      //     }
-      //     else { 
-      //       console.log("Record for " + refIdForPGCR + " found!");
-      //       return console.log("was there!");
-      //     }
-      //     })
+          //   function onInsert(err, docs) {
+          //     if (err) {
+          //       console.log("Error!", err);
+          //     } else {
+          //       console.info("loadouts were successfully stored.", docs.length);
+          //     }
+          //   }
+          // }
+          // else { 
+          //   console.log("Record for " + refIdForPGCR + " found!");
+          //   return console.log("was there!");
+          // }
+        //   })
       // })
       // .then(() => {
       //   let myCursor = PGCR.find({pgcrId: "3416381545"});
@@ -140,11 +140,12 @@ function getAllDaStuff(something) {
 
 
 router.get('/hope', jsonParser, (req, res) => {
-  // let myCursor = PGCR.find({pgcrId: "3416381545"});
-  // myCursor.then(load => {
-  //   res.json(load);
-  // })
-  // .catch(err => res.status(500).json({err}));
+  // PGCR.findOne({pgcrId: refIdForPGCR})
+  let myCursor = PGCR.find({"game.Response.activityDetails.instanceId": "3149745404"});
+  myCursor.then(load => {
+    res.json(load);
+  })
+  .catch(err => res.status(500).json({err}));
 
 
   // {
@@ -157,22 +158,22 @@ router.get('/hope', jsonParser, (req, res) => {
   //   preserveNullAndEmptyArrays: true
   // }
 
-  const thisItem = PGCR.aggregate(
-    [
-      {
-        $match: {pgcrId: "3416381545"}
-      },
-      {
-        $unwind: {
-          path: "$game.entries",
-          includeArrayIndex: "arrayIndex",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-    ]
-  )
+  // const thisItem = PGCR.aggregate(
+  //   [
+  //     {
+  //       $match: {pgcrId: "3416381545"}
+  //     },
+  //     {
+  //       $unwind: {
+  //         path: "$game.entries",
+  //         includeArrayIndex: "arrayIndex",
+  //         preserveNullAndEmptyArrays: true
+  //       }
+  //     },
+  //   ]
+  // )
 
-  thisItem.then(loadr => res.json(loadr));
+  // thisItem.then(loadr => res.json(loadr));
 });
 
 
@@ -182,11 +183,13 @@ let firstResponse;
 let secondResponse;
 let membershipType;
 let membershipId;
+let finalResponse = [];
 
 
 router.get("/first", (req, res) => {
   allResponses = [];
   allGames = [];
+  finalResponse = [];
   let saveThis;
   console.log("req.query", req.query)
   var mname = req.query.mname.replace("#", "%23");
@@ -226,7 +229,7 @@ router.get("/first", (req, res) => {
       .then(payload2 => {
         secondResponse = payload2.data.Response;
         let nameAndCharacters = Object.assign({}, firstResponse, secondResponse);
-        allGames.push(nameAndCharacters);
+        finalResponse.push(nameAndCharacters);
         return nameAndCharacters;
         // res.json(nameAndCharacters);
       })
@@ -236,7 +239,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=5`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=8`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -266,9 +269,39 @@ router.get("/first", (req, res) => {
           )
           .then(activityArrayResponsePayload => allGames.push(activityArrayResponsePayload.data))
         }))
-        // allResponses.push(allGames);
-        return allGames;
+        return allGames; //NOW, save this shit and THEN return
       })
+
+      .then(async function(payloadToBeSaved) {
+        await Promise.all(payloadToBeSaved.map(async (eachGame) => {
+          // let instId = "game.Response.activityDetails.instanceId";
+          let gameToFind = eachGame.Response.activityDetails.instanceId;
+          await PGCR.findOne({"game.Response.activityDetails.instanceId": gameToFind})
+          .then(load => {
+            if(load === null) {
+              console.log(gameToFind, " has no record.  Inserting record now.");
+              
+              let insertionObj = {game: eachGame};
+              pg.collection.insert(insertionObj, onInsert);
+                
+              console.log("wasnt there!");
+  
+              function onInsert(err, docs) {
+                if (err) {
+                  console.log("Error!", err);
+                } else {
+                  console.info("loadouts were successfully stored.", docs.length);
+                }
+              }
+            }
+            else { 
+              console.log("Record for " + gameToFind + " found!");
+              return console.log("was there!");
+            }
+          })
+        }))
+      })
+
       .then(finalPayload => res.json(finalPayload))
       .catch(err => {
         console.error(err);
