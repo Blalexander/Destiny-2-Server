@@ -161,6 +161,12 @@ router.get('/hope', jsonParser, (req, res) => {
   //   "game.Response.entries.extended.weapons.referenceId": 346136302
   // }
 
+
+
+  // {
+  //   "game.Response.entries.player.characterId": 2305843009301006557
+  // }
+
   const thisItem = PGCR.aggregate(
     [
       {
@@ -170,19 +176,43 @@ router.get('/hope', jsonParser, (req, res) => {
         }
       },
       {
-        $unwind:   {
-          path: "$game.Response.entries.extended.weapons",
-          preserveNullAndEmptyArrays: true
+        $match: {
+          "game.Response.entries.player.destinyUserInfo.membershipId": "4611686018470723268"
         }
       },
       {
-        $match:   {
-          "game.Response.entries.extended.weapons.referenceId": 346136302
+        $unwind:   {
+          path: "$game.Response.entries.extended.weapons",
+          preserveNullAndEmptyArrays: false
+        }
+      },
+      // {
+      //   $match:   {
+      //     "game.Response.entries.extended.weapons.referenceId": 346136302
+      //   }
+      // },
+      // {
+      //   $group: {
+      //     _id: "$game.Response.entries.player.destinyUserInfo.displayName"
+      //   }
+      // }
+      {
+        $group: {
+          _id: {
+            date: "$game.Response.period",
+          weapon: "$game.Response.entries.extended.weapons.referenceId" },
+          count: { $sum:1 } //counts how many different weapons were used each game
         }
       },
       {
         $group: {
-          _id: "$game.Response.entries.player.destinyUserInfo.displayName"
+          _id: "$_id.date",
+          weaponStats: {
+            $push: {
+              weapon: "$_id.weapon",
+              weaponKills: { $avg: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value" }
+            }
+          }
         }
       }
     ]
@@ -191,6 +221,10 @@ router.get('/hope', jsonParser, (req, res) => {
   thisItem.then(loadr => res.json(loadr));
 });
 
+
+          // weapons: { $addToSet: "$game.Response.entries.extended.weapons.referenceId" },
+          // averageKills: { $avg: "$game.Response.entries.extended.weapons" }
+              // weaponKills: { $avg: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value" }
 
 
 
