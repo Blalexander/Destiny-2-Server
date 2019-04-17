@@ -200,7 +200,9 @@ router.get('/hope', jsonParser, (req, res) => {
         $group: {
           _id: {
             date: "$game.Response.period",
-          weapon: "$game.Response.entries.extended.weapons.referenceId" },
+            weapon: "$game.Response.entries.extended.weapons.referenceId" ,
+            weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value"
+          },
           count: { $sum:1 } //counts how many different weapons were used each game
         }
       },
@@ -210,7 +212,7 @@ router.get('/hope', jsonParser, (req, res) => {
           weaponStats: {
             $push: {
               weapon: "$_id.weapon",
-              weaponKills: { $avg: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value" }
+              totalKills: "$_id.weaponKills"
             }
           }
         }
