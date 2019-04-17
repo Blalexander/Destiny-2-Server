@@ -216,7 +216,12 @@ router.get('/hope', jsonParser, (req, res) => {
             }
           }
         }
-      }
+      },
+      {
+        $sort: {
+          _id: 1 
+        }
+      },
     ]
   )
 
