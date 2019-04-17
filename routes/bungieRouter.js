@@ -140,33 +140,6 @@ function getAllDaStuff(something) {
 
 
 router.get('/hope', jsonParser, (req, res) => {
-  // let myCursor = PGCR.find({"game.Response.activityDetails.instanceId": "3149745404"});
-  // myCursor.then(load => {
-  //   res.json(load);
-  // })
-  // .catch(err => res.status(500).json({err}));
-
-  // 346136302
-  // {
-  //   path: "$game.Response.entries",
-  //   preserveNullAndEmptyArrays: true
-  // }
-
-  // {
-  //   path: "$game.Response.entries.extended.weapons",
-  //   preserveNullAndEmptyArrays: true
-  // }
-
-  // {
-  //   "game.Response.entries.extended.weapons.referenceId": 346136302
-  // }
-
-
-
-  // {
-  //   "game.Response.entries.player.characterId": 2305843009301006557
-  // }
-
   const thisItem = PGCR.aggregate(
     [
       {
@@ -186,22 +159,18 @@ router.get('/hope', jsonParser, (req, res) => {
           preserveNullAndEmptyArrays: false
         }
       },
-      // {
-      //   $match:   {
-      //     "game.Response.entries.extended.weapons.referenceId": 346136302
-      //   }
-      // },
-      // {
-      //   $group: {
-      //     _id: "$game.Response.entries.player.destinyUserInfo.displayName"
-      //   }
-      // }
       {
         $group: {
           _id: {
             date: "$game.Response.period",
             weapon: "$game.Response.entries.extended.weapons.referenceId" ,
-            weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value"
+            weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+            weaponPrecisionKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponPrecisionKills.basic.value",
+            totalKills: "$game.Response.entries.values.kills.basic.value",
+            totalDeaths: "$game.Response.entries.values.deaths.basic.value",
+            totalAssists: "$game.Response.entries.values.assists.basic.value",
+            totalScore: "$game.Response.entries.values.score.basic.value",
+            victory: "$game.Response.entries.values.standing.basic.value"
           },
           count: { $sum:1 } //counts how many different weapons were used each game
         }
@@ -212,7 +181,17 @@ router.get('/hope', jsonParser, (req, res) => {
           weaponStats: {
             $push: {
               weapon: "$_id.weapon",
-              totalKills: "$_id.weaponKills"
+              standardKills: "$_id.weaponKills",
+              precisionKills: "$_id.weaponPrecisionKills"
+            }
+          },
+          gameStats: {
+            $first: {
+              totalKills: "$_id.totalKills",
+              totalDeaths: "$_id.totalDeaths",
+              totalAssists: "$_id.totalAssists",
+              totalScore: "$_id.totalScore",
+              victory: "$_id.victory"
             }
           }
         }
