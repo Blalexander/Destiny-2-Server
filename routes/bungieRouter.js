@@ -140,17 +140,12 @@ function getAllDaStuff(something) {
 
 
 router.get('/hope', jsonParser, (req, res) => {
-  const thisItem = PGCR.aggregate(
+  const wepsOverTime = PGCR.aggregate(
     [
       {
         $unwind:   {
           path: "$game.Response.entries",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $match: {
-          "game.Response.entries.player.destinyUserInfo.membershipId": "4611686018470723268"
+          preserveNullAndEmptyArrays: false
         }
       },
       {
@@ -160,19 +155,12 @@ router.get('/hope', jsonParser, (req, res) => {
         }
       },
       {
-        $group: {
+        $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
           _id: {
             date: "$game.Response.period",
-            weapon: "$game.Response.entries.extended.weapons.referenceId" ,
-            weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
-            weaponPrecisionKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponPrecisionKills.basic.value",
-            totalKills: "$game.Response.entries.values.kills.basic.value",
-            totalDeaths: "$game.Response.entries.values.deaths.basic.value",
-            totalAssists: "$game.Response.entries.values.assists.basic.value",
-            totalScore: "$game.Response.entries.values.score.basic.value",
-            victory: "$game.Response.entries.values.standing.basic.value"
+            class: "$game.Response.entries.player.characterClass"
           },
-          count: { $sum:1 } //counts how many different weapons were used each game
+          count: { $sum:1 } 
         }
       },
       {
@@ -191,7 +179,8 @@ router.get('/hope', jsonParser, (req, res) => {
               totalDeaths: "$_id.totalDeaths",
               totalAssists: "$_id.totalAssists",
               totalScore: "$_id.totalScore",
-              victory: "$_id.victory"
+              victory: "$_id.victory",
+              class: "$_id.class"
             }
           }
         }
@@ -204,14 +193,8 @@ router.get('/hope', jsonParser, (req, res) => {
     ]
   )
 
-  thisItem.then(loadr => res.json(loadr));
+  wepsOverTime.then(loadr => res.json(loadr));
 });
-
-
-          // weapons: { $addToSet: "$game.Response.entries.extended.weapons.referenceId" },
-          // averageKills: { $avg: "$game.Response.entries.extended.weapons" }
-              // weaponKills: { $avg: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value" }
-
 
 
 let firstResponse;
@@ -275,7 +258,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=6`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=1`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -302,7 +285,7 @@ router.get("/first", (req, res) => {
               revisedArray.push(eachId);
             }
             else { 
-              console.log("Record for " + eachId + " found!  Removing from array");
+              console.log("Record for " + eachId + " found!  Not including in revised array");
             }
           })
         }))
@@ -340,6 +323,145 @@ router.get("/first", (req, res) => {
             }
           }
         }))
+      })
+
+
+      //hunter = 671679327
+      //warlock = 2271682572
+      //titan = 3655393761
+      // "4611686018470723268"
+      .then(async function() { //can make multiple pipelines on backend that save data and update infrequently
+        const overallGameStats = await PGCR.aggregate(
+          [
+            {
+              $unwind:   {
+                path: "$game.Response.entries",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            // {
+            //   $match: {
+            //     "game.Response.entries.player.destinyUserInfo.membershipId": membershipId
+            //   }
+            // },
+            {
+              $unwind:   {
+                path: "$game.Response.entries.extended.weapons",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  date: "$game.Response.period",
+                  weapon: "$game.Response.entries.extended.weapons.referenceId" ,
+                  weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+                  weaponPrecisionKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponPrecisionKills.basic.value",
+                  totalKills: "$game.Response.entries.values.kills.basic.value",
+                  totalDeaths: "$game.Response.entries.values.deaths.basic.value",
+                  totalAssists: "$game.Response.entries.values.assists.basic.value",
+                  totalScore: "$game.Response.entries.values.score.basic.value",
+                  victory: "$game.Response.entries.values.standing.basic.value",
+                  class: "$game.Response.entries.player.characterClass"
+                },
+                count: { $sum:1 } //counts how many different weapons were used each game
+              }
+            },
+            {
+              $group: {
+                _id: "$_id.date",
+                weaponStats: {
+                  $push: {
+                    weapon: "$_id.weapon",
+                    standardKills: "$_id.weaponKills",
+                    precisionKills: "$_id.weaponPrecisionKills"
+                  }
+                },
+                gameStats: {
+                  $first: {
+                    totalKills: "$_id.totalKills",
+                    totalDeaths: "$_id.totalDeaths",
+                    totalAssists: "$_id.totalAssists",
+                    totalScore: "$_id.totalScore",
+                    victory: "$_id.victory",
+                    class: "$_id.class"
+                  }
+                }
+              }
+            },
+            {
+              $sort: {
+                _id: 1 
+              }
+            },
+          ]
+        )
+        finalResponse.push(overallGameStats)
+
+        const datesAndClasses = await PGCR.aggregate(
+          [
+            {
+              $unwind:   {
+                path: "$game.Response.entries",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
+                _id: {
+                  date: "$game.Response.period",
+                  class: "$game.Response.entries.player.characterClass"
+                },
+                count: { $sum:1 } 
+              }
+            },
+            {
+              $sort: {
+                _id: 1 
+              }
+            },
+          ]
+        )
+        finalResponse.push(datesAndClasses)
+
+        const wepsOverTime = await PGCR.aggregate(
+          [
+            {
+              $unwind:   {
+                path: "$game.Response.entries",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $unwind:   {
+                path: "$game.Response.entries.extended.weapons",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
+                _id: {
+                  date: "$game.Response.period",
+                  class: "$game.Response.entries.player.characterClass"
+                },
+                count: { $sum:1 } 
+              }
+            },
+            {
+              $sort: {
+                _id: 1 
+              }
+            },
+          ]
+        )
+        finalResponse.push(wepsOverTime)
+      
+        return finalResponse;
+      })
+
+      .then(accountGameData => {
+        // finalResponse.push(accountGameData);
+        return accountGameData;
       })
 
       .then(finalPayload => res.json(finalPayload))
