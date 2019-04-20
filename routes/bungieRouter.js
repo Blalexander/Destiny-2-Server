@@ -140,7 +140,7 @@ function getAllDaStuff(something) {
 
 
 router.get('/hope', jsonParser, (req, res) => {
-  const wepsOverTime = PGCR.aggregate(
+  const wepPop = PGCR.aggregate(
     [
       {
         $unwind:   {
@@ -155,34 +155,9 @@ router.get('/hope', jsonParser, (req, res) => {
         }
       },
       {
-        $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
-          _id: {
-            date: "$game.Response.period",
-            class: "$game.Response.entries.player.characterClass"
-          },
+        $group: { 
+          _id: "$game.Response.entries.extended.weapons.referenceId",
           count: { $sum:1 } 
-        }
-      },
-      {
-        $group: {
-          _id: "$_id.date",
-          weaponStats: {
-            $push: {
-              weapon: "$_id.weapon",
-              standardKills: "$_id.weaponKills",
-              precisionKills: "$_id.weaponPrecisionKills"
-            }
-          },
-          gameStats: {
-            $first: {
-              totalKills: "$_id.totalKills",
-              totalDeaths: "$_id.totalDeaths",
-              totalAssists: "$_id.totalAssists",
-              totalScore: "$_id.totalScore",
-              victory: "$_id.victory",
-              class: "$_id.class"
-            }
-          }
         }
       },
       {
@@ -193,7 +168,7 @@ router.get('/hope', jsonParser, (req, res) => {
     ]
   )
 
-  wepsOverTime.then(loadr => res.json(loadr));
+  wepPop.then(loadr => res.json(loadr));
 });
 
 
@@ -439,12 +414,24 @@ router.get("/first", (req, res) => {
               }
             },
             {
-              $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
+              $group: { 
                 _id: {
                   date: "$game.Response.period",
-                  class: "$game.Response.entries.player.characterClass"
+                  // class: "$game.Response.entries.player.characterClass",
+                  weapon: "$game.Response.entries.extended.weapons.referenceId"
                 },
                 count: { $sum:1 } 
+              }
+            },
+            {
+              $group: {
+                _id: "$_id.date",
+                weaponStats: {
+                  $push: {
+                    weapon: "$_id.weapon",
+                    count: "$count"
+                  }
+                },
               }
             },
             {
@@ -455,6 +442,35 @@ router.get("/first", (req, res) => {
           ]
         )
         finalResponse.push(wepsOverTime)
+
+        const wepPop = await PGCR.aggregate(
+          [
+            {
+              $unwind:   {
+                path: "$game.Response.entries",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $unwind:   {
+                path: "$game.Response.entries.extended.weapons",
+                preserveNullAndEmptyArrays: false
+              }
+            },
+            {
+              $group: { 
+                _id: "$game.Response.entries.extended.weapons.referenceId",
+                count: { $sum:1 } 
+              }
+            },
+            {
+              $sort: {
+                _id: 1 
+              }
+            },
+          ]
+        )
+        finalResponse.push(wepPop)
       
         return finalResponse;
       })
