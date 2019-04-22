@@ -139,36 +139,179 @@ function getAllDaStuff(something) {
 
 
 
-router.get('/hope', jsonParser, (req, res) => {
-  const wepPop = PGCR.aggregate(
-    [
-      {
-        $unwind:   {
-          path: "$game.Response.entries",
-          preserveNullAndEmptyArrays: false
-        }
-      },
-      {
-        $unwind:   {
-          path: "$game.Response.entries.extended.weapons",
-          preserveNullAndEmptyArrays: false
-        }
-      },
-      {
-        $group: { 
-          _id: "$game.Response.entries.extended.weapons.referenceId",
-          count: { $sum:1 } 
-        }
-      },
-      {
-        $sort: {
-          _id: 1 
-        }
-      },
-    ]
-  )
+router.get('/hope', jsonParser, async (req, res) => {
+  let qwerty = [];
 
-  wepPop.then(loadr => res.json(loadr));
+    const overallGameStats = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        // {
+        //   $match: {
+        //     "game.Response.entries.player.destinyUserInfo.membershipId": membershipId
+        //   }
+        // },
+        {
+          $unwind:   {
+            path: "$game.Response.entries.extended.weapons",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: {
+            _id: {
+              date: "$game.Response.period",
+              weapon: "$game.Response.entries.extended.weapons.referenceId" ,
+              weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+              weaponPrecisionKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponPrecisionKills.basic.value",
+              totalKills: "$game.Response.entries.values.kills.basic.value",
+              totalDeaths: "$game.Response.entries.values.deaths.basic.value",
+              totalAssists: "$game.Response.entries.values.assists.basic.value",
+              totalScore: "$game.Response.entries.values.score.basic.value",
+              victory: "$game.Response.entries.values.standing.basic.value",
+              class: "$game.Response.entries.player.characterClass"
+            },
+            count: { $sum:1 } //counts how many different weapons were used each game
+          }
+        },
+        {
+          $group: {
+            _id: "$_id.date",
+            weaponStats: {
+              $push: {
+                weapon: "$_id.weapon",
+                standardKills: "$_id.weaponKills",
+                precisionKills: "$_id.weaponPrecisionKills"
+              }
+            },
+            gameStats: {
+              $first: {
+                totalKills: "$_id.totalKills",
+                totalDeaths: "$_id.totalDeaths",
+                totalAssists: "$_id.totalAssists",
+                totalScore: "$_id.totalScore",
+                victory: "$_id.victory",
+                class: "$_id.class"
+              }
+            }
+          }
+        },
+        {
+          $sort: {
+            _id: 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(overallGameStats)
+  
+    const datesAndClasses = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { //only returning 3 responses per date? OHH, COUNT MUST BE # OF TIMES EACH OCCURED
+            _id: {
+              date: "$game.Response.period",
+              class: "$game.Response.entries.player.characterClass"
+            },
+            count: { $sum:1 } 
+          }
+        },
+        {
+          $sort: {
+            _id: 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(datesAndClasses)
+  
+    const wepsOverTime = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $unwind:   {
+            path: "$game.Response.entries.extended.weapons",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { 
+            _id: {
+              date: "$game.Response.period",
+              // class: "$game.Response.entries.player.characterClass",
+              weapon: "$game.Response.entries.extended.weapons.referenceId"
+            },
+            count: { $sum:1 } 
+          }
+        },
+        {
+          $group: {
+            _id: "$_id.date",
+            weaponStats: {
+              $push: {
+                weapon: "$_id.weapon",
+                count: "$count"
+              }
+            },
+          }
+        },
+        {
+          $sort: {
+            _id: 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(wepsOverTime)
+  
+    const wepPop = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $unwind:   {
+            path: "$game.Response.entries.extended.weapons",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { 
+            _id: "$game.Response.entries.extended.weapons.referenceId",
+            count: { $sum:1 } 
+          }
+        },
+        {
+          $sort: {
+            _id: 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(wepPop)
+
+  // return statsForAll;
+  // statsForAll.then(loadr => res.json(loadr));
+  res.json(qwerty);
+
 });
 
 
