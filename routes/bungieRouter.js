@@ -301,12 +301,46 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
         {
           $sort: {
-            _id: 1 
+            count: -1 
           }
         },
       ]
     )
     qwerty.push(wepPop)
+
+    // const duoWepPop = await PGCR.aggregate(
+    //   [
+    //     {
+    //       $unwind:   {
+    //         path: "$game.Response.entries",
+    //         preserveNullAndEmptyArrays: false
+    //       }
+    //     },
+    //     {
+    //       $unwind:   {
+    //         path: "$game.Response.entries.extended.weapons",
+    //         preserveNullAndEmptyArrays: false
+    //       }
+    //     },
+    //     {
+    //       $group: { 
+    //         _id: {
+    //           primaryWep: "$game.Response.entries.extended.weapons.referenceId",
+    //         },
+    //         count: { $sum:1 } 
+    //       }
+    //     },
+    //     {
+    //       $sort: {
+    //         count: -1 
+    //       }
+    //     },
+    //     {
+    //       $limit: 10
+    //     }
+    //   ]
+    // )
+    // qwerty.push(duoWepPop)
 
   // return statsForAll;
   // statsForAll.then(loadr => res.json(loadr));
@@ -608,7 +642,7 @@ router.get("/first", (req, res) => {
             },
             {
               $sort: {
-                _id: 1 
+                count: -1 
               }
             },
           ]
