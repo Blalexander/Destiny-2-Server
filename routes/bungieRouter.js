@@ -329,7 +329,7 @@ router.get('/hope', jsonParser, async (req, res) => {
               pAssists: "$game.Response.entries.values.assists.basic.value",
               pScore: "$game.Response.entries.values.score.basic.value",
               pKills: "$game.Response.entries.values.kills.basic.value",
-              pDeaths: "$game.Response.entries.values.kills.basic.value",
+              pDeaths: "$game.Response.entries.values.deaths.basic.value",
               pAvPerKill: "$game.Response.entries.values.averageScorePerKill.basic.value",
               pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
               pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
