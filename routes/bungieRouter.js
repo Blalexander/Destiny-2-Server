@@ -384,6 +384,32 @@ router.get('/hope', jsonParser, async (req, res) => {
     )
     qwerty.push(duoWepPop)
 
+    const classes = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { 
+            _id: {
+              class: "$game.Response.entries.player.characterClass"
+            },
+            count: { $sum:1 } 
+          }
+        },
+        {
+          $sort: { 
+            score: { $meta: "textScore" }, 
+            "_id.class": 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(classes)
+
   // return statsForAll;
   // statsForAll.then(loadr => res.json(loadr));
   res.json(qwerty);
