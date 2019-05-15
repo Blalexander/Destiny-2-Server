@@ -410,6 +410,83 @@ router.get('/hope', jsonParser, async (req, res) => {
     )
     qwerty.push(classes)
 
+    const classStats = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $unwind:   {
+            path: "$game.Response.entries.extended.weapons",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { 
+            _id: {
+              class: "$game.Response.entries.player.characterClass",
+              pAssists: "$game.Response.entries.values.assists.basic.value",
+              pScore: "$game.Response.entries.values.score.basic.value",
+              pKills: "$game.Response.entries.values.kills.basic.value",
+              pDeaths: "$game.Response.entries.values.deaths.basic.value",
+              pAvPerKill: "$game.Response.entries.values.averageScorePerKill.basic.value",
+              pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
+              pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
+              pEff: "$game.Response.entries.values.efficiency.basic.value",
+              pStanding: "$game.Response.entries.values.standing.basic.value"
+            },
+            count: { $sum:1 } 
+          }
+        },
+        {
+          $group: {
+            _id: "$_id.class",
+            assistsAvg: {
+              $avg: "$_id.pAssists"
+            },
+            scoreAvg: {
+              $avg: "$_id.pScore"
+            },
+            killsAvg: {
+              $avg: "$_id.pKills"
+            },
+            deathsAvg: {
+              $avg: "$_id.pDeaths"
+            },
+            perKAvg: {
+              $avg: "$_id.pAvPerKill"
+            },
+            perLAvg: {
+              $avg: "$_id.pAvPerLife"
+            },
+            oppDefAvg: {
+              $avg: "$_id.pOppDefeated"
+            },
+            effAvg: {
+              $avg: "$_id.pEff"
+            },
+            standingAvg: {
+              $avg: "$_id.pStanding"
+            },
+            totalCount: { $sum: "$count" } 
+          }
+        },
+        {
+          $sort: { 
+            score: { $meta: "textScore" }, 
+            _id: 1 
+          }
+        },
+        // {
+        //   $limit: 10
+        // }
+      ]
+    )
+    qwerty.push(classStats)
+
   // return statsForAll;
   // statsForAll.then(loadr => res.json(loadr));
   res.json(qwerty);
