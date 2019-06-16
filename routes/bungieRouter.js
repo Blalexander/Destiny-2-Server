@@ -4,6 +4,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
 const { PGCR } = require("./models");
+const { Mani } = require("./models");
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
 
@@ -22,6 +23,7 @@ let allGames = [];
 let allInstanceIds = [];
 let childId;
 const pg = PGCR();
+const Mfst = Mani();
 
 router.get("/second", (req, res) => {
   keepTrackOfHowMany = 0;
@@ -30,17 +32,53 @@ router.get("/second", (req, res) => {
   childId = req.query.chid;
   axios
   .get(
-    `https://www.bungie.net/Platform/Destiny2/${req.query.mtype}/Account/${req.query.mid}/Character/${req.query.chid}/Stats/Activities/?mode=5&count=5`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
-      }
-    }
+    // `https://www.bungie.net/Platform/Destiny2/${req.query.mtype}/Account/${req.query.mid}/Character/${req.query.chid}/Stats/Activities/?mode=5&count=5`,
+    'https://www.bungie.net/common/destiny2_content/json/en/aggregate-0a10bfd0-2d5d-4d4c-9804-0a20e4e23da9.json',
+    // {
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+    //   }
+    // }
   )
   .then(payload => {
+    // let thisItem = payload.DestinyClassDefinition[671679327].hash;
+    let thisItem = payload.data.DestinyInventoryItemDefinition;
+    let thisItem2 = Object.keys(thisItem);
+    let insertionObj = {manifest: thisItem};
+    // Mfst.collection.insert(insertionObj, onInsert);
+
+    let weaponTypes = ["Sidearm", "Auto Rifle", "Pulse Rifle", "Combat Bow", "Scout Rifle", "Hand Cannon", "Sniper Rifle", "Submachine Gun", "Trace Rifle", "Linear Fusion Rifle", "Grenade Launcher", "Shotgun", "Rocket Launcher", "Sword", "Machine Gun"];
+
+    thisItem2.forEach(item => {
+      if(weaponTypes.includes(thisItem[item].itemTypeDisplayName)) {
+        let finalItem = {
+          "weaponName": thisItem[item].displayProperties.name,
+          "weaponIcon": thisItem[item].displayProperties.icon,
+          "weaponType": thisItem[item].itemTypeDisplayName,
+          "weaponTier": thisItem[item].inventory.tierType,
+          "ammoType": thisItem[item].equippingBlock.ammoType,
+          "itemCategories": thisItem[item].itemCategoryHashes,
+          "weaponValues": thisItem[item].stats.stats,
+        };
+        return Mfst.collection.insert({manifest: finalItem}, onInsert);
+      }
+      else {
+        return("nope")
+      }
+    })
+
+    function onInsert(err, docs) {
+      if (err) {
+        console.log("Error!", err);
+      } else {
+        console.info("Manifest was successfully stored.", docs.length);
+      }
+    }
+
+    res.json("done!");
     // console.log(payload.data);
-    res.json(payload.data)
+    // res.json(payload.data)
     // keepTrackOfHowMany = payload.data.Response.activities.length;
     // console.log("KTOHM: ", keepTrackOfHowMany);
     // payload.data.Response.activities.forEach(activity => {
@@ -436,7 +474,11 @@ router.get('/hope', jsonParser, async (req, res) => {
               pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
               pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
               pEff: "$game.Response.entries.values.efficiency.basic.value",
-              pStanding: "$game.Response.entries.values.standing.basic.value"
+              pStanding: "$game.Response.entries.values.standing.basic.value",
+              grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
+              meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
+              superKills: "$game.Response.entries.extended.values.weaponKillsSuper.basic.value",
+              abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
             },
             count: { $sum:1 } 
           }
@@ -471,6 +513,18 @@ router.get('/hope', jsonParser, async (req, res) => {
             standingAvg: {
               $avg: "$_id.pStanding"
             },
+            grenadeAvg: {
+              $avg: "$_id.grenadeKills"
+            },
+            meleeAvg: {
+              $avg: "$_id.meleeKills"
+            },
+            superAvg: {
+              $avg: "$_id.superKills"
+            },
+            abilityAvg: {
+              $avg: "$_id.abilityKills"
+            },
             totalCount: { $sum: "$count" } 
           }
         },
@@ -487,6 +541,8 @@ router.get('/hope', jsonParser, async (req, res) => {
     )
     qwerty.push(classStats)
 
+  const allWepVals = await Mani.find();
+  qwerty.push(allWepVals); 
   // return statsForAll;
   // statsForAll.then(loadr => res.json(loadr));
   res.json(qwerty);
