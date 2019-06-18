@@ -43,42 +43,51 @@ router.get("/second", (req, res) => {
   )
   .then(payload => {
     // let thisItem = payload.DestinyClassDefinition[671679327].hash;
-    let thisItem = payload.data.DestinyInventoryItemDefinition;
+    // let thisItem = payload.data.DestinyInventoryItemDefinition;
+    let thisItem = payload.data.DestinyStatDefinition;
     let thisItem2 = Object.keys(thisItem);
     let insertionObj = {manifest: thisItem};
     // Mfst.collection.insert(insertionObj, onInsert);
 
-    let weaponTypes = ["Sidearm", "Auto Rifle", "Pulse Rifle", "Combat Bow", "Scout Rifle", "Hand Cannon", "Sniper Rifle", "Submachine Gun", "Trace Rifle", "Linear Fusion Rifle", "Grenade Launcher", "Shotgun", "Rocket Launcher", "Sword", "Machine Gun"];
+    let weaponTypes = ["Sidearm", "Auto Rifle", "Pulse Rifle", "Combat Bow", "Scout Rifle", "Hand Cannon", "Sniper Rifle", "Submachine Gun", "Trace Rifle", "Linear Fusion Rifle", "Grenade Launcher", "Shotgun", "Rocket Launcher", "Sword", "Machine Gun", "Fusion Rifle"];
+
+    let wepObj = {};
 
     thisItem2.forEach(item => {
-      if(weaponTypes.includes(thisItem[item].itemTypeDisplayName)) {
-        let finalItem = {
-          "weaponName": thisItem[item].displayProperties.name,
-          "weaponIcon": thisItem[item].displayProperties.icon,
-          "weaponType": thisItem[item].itemTypeDisplayName,
-          "weaponTier": thisItem[item].inventory.tierType,
-          "ammoType": thisItem[item].equippingBlock.ammoType,
-          "itemCategories": thisItem[item].itemCategoryHashes,
-          "weaponValues": thisItem[item].stats.stats,
-        };
-        return Mfst.collection.insert({manifest: finalItem}, onInsert);
-      }
-      else {
-        return("nope")
-      }
+      // if(weaponTypes.includes(thisItem[item].itemTypeDisplayName)) {
+        // wepObj[item] = {
+        //   "weaponName": thisItem[item].displayProperties.name,
+        //   "weaponIcon": thisItem[item].displayProperties.icon,
+        //   "weaponType": thisItem[item].itemTypeDisplayName,
+        //   "weaponTier": thisItem[item].inventory.tierType,
+        //   "ammoType": thisItem[item].equippingBlock.ammoType,
+        //   "itemCategories": thisItem[item].itemCategoryHashes,
+        //   "weaponValues": thisItem[item].stats.stats,
+        // };
+
+        wepObj[item] = {
+          "name": thisItem[item].displayProperties.name,
+          "description": thisItem[item].displayProperties.description
+        }
+
+        // return Mfst.collection.insert({manifest: finalItem}, onInsert);
+      // }
+      // else {
+      //   return("nope")
+      // }
     })
 
-    function onInsert(err, docs) {
-      if (err) {
-        console.log("Error!", err);
-      } else {
-        console.info("Manifest was successfully stored.", docs.length);
-      }
-    }
+    // function onInsert(err, docs) {
+    //   if (err) {
+    //     console.log("Error!", err);
+    //   } else {
+    //     console.info("Manifest was successfully stored.", docs.length);
+    //   }
+    // }
 
-    res.json("done!");
+    // res.json("done!");
     // console.log(payload.data);
-    // res.json(payload.data)
+    res.json(wepObj)
     // keepTrackOfHowMany = payload.data.Response.activities.length;
     // console.log("KTOHM: ", keepTrackOfHowMany);
     // payload.data.Response.activities.forEach(activity => {
@@ -541,8 +550,8 @@ router.get('/hope', jsonParser, async (req, res) => {
     )
     qwerty.push(classStats)
 
-  const allWepVals = await Mani.find();
-  qwerty.push(allWepVals); 
+  // const allWepVals = await Mani.find();
+  // qwerty.push(allWepVals); 
   // return statsForAll;
   // statsForAll.then(loadr => res.json(loadr));
   res.json(qwerty);
