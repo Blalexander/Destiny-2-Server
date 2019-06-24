@@ -44,7 +44,8 @@ router.get("/second", (req, res) => {
   .then(payload => {
     // let thisItem = payload.DestinyClassDefinition[671679327].hash;
     // let thisItem = payload.data.DestinyInventoryItemDefinition;
-    let thisItem = payload.data.DestinyStatDefinition;
+    // let thisItem = payload.data.DestinyStatDefinition;
+    let thisItem = payload.data.DestinyActivityDefinition;
     let thisItem2 = Object.keys(thisItem);
     let insertionObj = {manifest: thisItem};
     // Mfst.collection.insert(insertionObj, onInsert);
@@ -54,27 +55,36 @@ router.get("/second", (req, res) => {
     let wepObj = {};
 
     thisItem2.forEach(item => {
+      // console.log(item)
       // if(weaponTypes.includes(thisItem[item].itemTypeDisplayName)) {
-        // wepObj[item] = {
-        //   "weaponName": thisItem[item].displayProperties.name,
-        //   "weaponIcon": thisItem[item].displayProperties.icon,
-        //   "weaponType": thisItem[item].itemTypeDisplayName,
-        //   "weaponTier": thisItem[item].inventory.tierType,
-        //   "ammoType": thisItem[item].equippingBlock.ammoType,
-        //   "itemCategories": thisItem[item].itemCategoryHashes,
-        //   "weaponValues": thisItem[item].stats.stats,
-        // };
+      //   return wepObj[item] = {
+      //     "weaponName": thisItem[item].displayProperties.name,
+      //     "weaponIcon": thisItem[item].displayProperties.icon,
+      //     "weaponType": thisItem[item].itemTypeDisplayName,
+      //     "weaponTier": thisItem[item].inventory.tierType,
+      //     "ammoType": thisItem[item].equippingBlock.ammoType,
+      //     "itemCategories": thisItem[item].itemCategoryHashes,
+      //     "weaponValues": thisItem[item].stats.stats,
+      //     "weaponIntrinsicSocket": thisItem[item].sockets.socketEntries[0].singleInitialItemHash
+      //   };
 
-        wepObj[item] = {
-          "name": thisItem[item].displayProperties.name,
-          "description": thisItem[item].displayProperties.description
+        // wepObj[item] = {
+        //   "name": thisItem[item].displayProperties.name,
+        //   "description": thisItem[item].displayProperties.description
+        // }
+
+      if(thisItem[item].isPvP === true) {
+        return wepObj[item] = {
+          "locationName": thisItem[item].displayProperties.name,
+          "locationDescription": thisItem[item].displayProperties.description,
+          "locationImage": thisItem[item].pgcrImage
         }
 
-        // return Mfst.collection.insert({manifest: finalItem}, onInsert);
-      // }
-      // else {
-      //   return("nope")
-      // }
+      //   // return Mfst.collection.insert({manifest: finalItem}, onInsert);
+      }
+      else {
+        return("nope")
+      }
     })
 
     // function onInsert(err, docs) {
@@ -87,7 +97,7 @@ router.get("/second", (req, res) => {
 
     // res.json("done!");
     // console.log(payload.data);
-    res.json(wepObj)
+    res.status(200).json(wepObj)
     // keepTrackOfHowMany = payload.data.Response.activities.length;
     // console.log("KTOHM: ", keepTrackOfHowMany);
     // payload.data.Response.activities.forEach(activity => {
@@ -342,13 +352,57 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
         {
           $group: { 
-            _id: "$game.Response.entries.extended.weapons.referenceId",
+            _id: {
+              primaryWep: "$game.Response.entries.extended.weapons.referenceId",
+              pAssists: "$game.Response.entries.values.assists.basic.value",
+              pScore: "$game.Response.entries.values.score.basic.value",
+              pKills: "$game.Response.entries.values.kills.basic.value",
+              pDeaths: "$game.Response.entries.values.deaths.basic.value",
+              pAvPerKill: "$game.Response.entries.values.averageScorePerKill.basic.value",
+              pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
+              pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
+              pEff: "$game.Response.entries.values.efficiency.basic.value",
+              pStanding: "$game.Response.entries.values.standing.basic.value"
+            },
             count: { $sum:1 } 
           }
         },
         {
+          $group: {
+            _id: "$_id.primaryWep",
+            assistsAvg: {
+              $avg: "$_id.pAssists"
+            },
+            scoreAvg: {
+              $avg: "$_id.pScore"
+            },
+            killsAvg: {
+              $avg: "$_id.pKills"
+            },
+            deathsAvg: {
+              $avg: "$_id.pDeaths"
+            },
+            perKAvg: {
+              $avg: "$_id.pAvPerKill"
+            },
+            perLAvg: {
+              $avg: "$_id.pAvPerLife"
+            },
+            oppDefAvg: {
+              $avg: "$_id.pOppDefeated"
+            },
+            effAvg: {
+              $avg: "$_id.pEff"
+            },
+            standingAvg: {
+              $avg: "$_id.pStanding"
+            },
+            totalCount: { $sum: "$count" } 
+          }
+        },
+        {
           $sort: {
-            count: -1 
+            totalCount: -1 
           }
         },
       ]
@@ -549,6 +603,41 @@ router.get('/hope', jsonParser, async (req, res) => {
       ]
     )
     qwerty.push(classStats)
+
+    const mapStats = await PGCR.aggregate(
+      [
+        {
+          $unwind:   {
+            path: "$game.Response.entries",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $unwind:   {
+            path: "$game.Response.entries.extended.weapons",
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $group: { 
+            _id: {
+              class: "$game.Response.entries.player.characterClass",
+              map: "$game.Response.activityDetails.referenceId",
+            },
+            count: { $sum:1 },
+            standing: {
+                $avg: "$game.Response.entries.values.standing.basic.value"
+              }
+          }
+        },
+        {
+          $sort: {
+            standing: 1 
+          }
+        },
+      ]
+    )
+    qwerty.push(mapStats)
 
   // const allWepVals = await Mani.find();
   // qwerty.push(allWepVals); 
