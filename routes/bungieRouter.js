@@ -225,6 +225,10 @@ router.get('/hope', jsonParser, async (req, res) => {
               weapon: "$game.Response.entries.extended.weapons.referenceId" ,
               weaponKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
               weaponPrecisionKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponPrecisionKills.basic.value",
+              grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
+              meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
+              abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
+              superKills: "$game.Response.entries.extended.values.weaponKillsSuper.basic.value",
               totalKills: "$game.Response.entries.values.kills.basic.value",
               totalDeaths: "$game.Response.entries.values.deaths.basic.value",
               totalAssists: "$game.Response.entries.values.assists.basic.value",
@@ -357,6 +361,10 @@ router.get('/hope', jsonParser, async (req, res) => {
               pAssists: "$game.Response.entries.values.assists.basic.value",
               pScore: "$game.Response.entries.values.score.basic.value",
               pKills: "$game.Response.entries.values.kills.basic.value",
+              grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
+              meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
+              abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
+              superKills: "$game.Response.entries.extended.values.weaponKillsSuper.basic.value",
               pDeaths: "$game.Response.entries.values.deaths.basic.value",
               pAvPerKill: "$game.Response.entries.values.averageScorePerKill.basic.value",
               pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
@@ -378,6 +386,18 @@ router.get('/hope', jsonParser, async (req, res) => {
             },
             killsAvg: {
               $avg: "$_id.pKills"
+            },
+            grenadeKills: {
+              $avg: "$_id.grenadeKills"
+            },
+            meleeKills: {
+              $avg: "$_id.meleeKills"
+            },
+            abilityKills: {
+              $avg: "$_id.abilityKills"
+            },
+            superKills: {
+              $avg: "$_id.superKills"
             },
             deathsAvg: {
               $avg: "$_id.pDeaths"
@@ -417,16 +437,21 @@ router.get('/hope', jsonParser, async (req, res) => {
             preserveNullAndEmptyArrays: false
           }
         },
-        {
-          $unwind:   {
-            path: "$game.Response.entries.extended.weapons",
-            preserveNullAndEmptyArrays: false
-          }
-        },
+        // {
+        //   $unwind:   {
+        //     path: "$game.Response.entries.extended.weapons",
+        //     preserveNullAndEmptyArrays: false
+        //   }
+        // },
         {
           $group: { 
             _id: {
-              primaryWep: "$game.Response.entries.extended.weapons.referenceId",
+              wepHashes: "$game.Response.entries.extended.weapons.referenceId",
+              wepKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+              grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
+              meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
+              abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
+              superKills: "$game.Response.entries.extended.values.weaponKillsSuper.basic.value",
               pAssists: "$game.Response.entries.values.assists.basic.value",
               pScore: "$game.Response.entries.values.score.basic.value",
               pKills: "$game.Response.entries.values.kills.basic.value",
@@ -435,14 +460,32 @@ router.get('/hope', jsonParser, async (req, res) => {
               pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
               pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
               pEff: "$game.Response.entries.values.efficiency.basic.value",
-              pStanding: "$game.Response.entries.values.standing.basic.value"
+              pStanding: "$game.Response.entries.values.standing.basic.value",
             },
             count: { $sum:1 } 
           }
         },
         {
           $group: {
-            _id: "$_id.primaryWep",
+            _id: "$_id.wepHashes",
+            allHashes: {
+              $addToSet: "$_id.wepHashes"
+            },
+            allKills: {
+              $push: "$_id.wepKills"
+            },
+            grenadeKills: {
+              $avg: "$_id.grenadeKills"
+            },
+            meleeKills: {
+              $avg: "$_id.meleeKills"
+            },
+            abilityKills: {
+              $avg: "$_id.abilityKills"
+            },
+            superKills: {
+              $avg: "$_id.superKills"
+            },
             assistsAvg: {
               $avg: "$_id.pAssists"
             },
