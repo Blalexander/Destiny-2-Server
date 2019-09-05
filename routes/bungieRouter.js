@@ -17,6 +17,86 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
 });
 
 
+let sent = false;
+let dataHolder;
+
+console.log("Starting...")
+async function axiosRes(wepPop) { 
+  if(sent === false) {
+    const returnItem = await axios
+    .get(
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+        }
+      }
+    )
+    .then(payload => {
+      console.log("Success!")
+      // qwerty.push(payload)
+      // return payload.data.DestinyInventoryItemDefinition
+      let newItem = payload.data.DestinyInventoryItemDefinition
+      let socketArray = [];
+      let newishObj = {};
+      let newestObj = {};
+      for(let entry in wepPop) {
+        let idToUse = wepPop[entry]._id;
+        // console.log(idToUse)
+        let intSocketsVals = newItem[idToUse].sockets.intrinsicSockets.map(eachSocket => { //MIGHT HAVE TO START SENDING SOCKET DATA FROM HERE.  LIKE YOU DID WITH WEPPOP, CYCLE THROUGH EACH SOCKET, KEEP A LIST, SEND DEFS TO FRONTEND
+          if(!socketArray.includes(eachSocket.plugItemHash)) {
+            socketArray.push(eachSocket.plugItemHash)
+          }
+          return eachSocket.plugItemHash
+        })
+        let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
+          if(eachSocket.reusablePlugItems.length != 100) {
+            let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => {
+              if(!socketArray.includes(eachPlugItem.plugItemHash)) {
+                socketArray.push(eachPlugItem.plugItemHash)
+              }
+              eachPlugItem.plugItemHash
+            })
+            return hashMaker
+          }
+        })
+        let allSocketDefs = socketArray.forEach(es => { //FINISH
+          newestObj[es] = {
+            socketName: newItem[es].displayProperties.name,
+            socketDesc: newItem[es].displayProperties.description,
+            socketIcon: newItem[es].displayProperties.icon,
+            socketType: newItem[es].itemTypeDisplayName,
+          }
+        })
+        newishObj[idToUse] = {
+          weaponName: newItem[idToUse].displayProperties.name,
+          weaponIcon: newItem[idToUse].displayProperties.icon,
+          weaponType: newItem[idToUse].itemTypeDisplayName,
+          weaponTier: newItem[idToUse].inventory.tierType,
+          ammoType: newItem[idToUse].equippingBlock.ammoType,
+          itemCategories: newItem[idToUse].itemCategoryHashes,
+          intSockets: intSocketsVals,
+          varSockets: varSocketsVals,
+          weaponValues: newItem[idToUse].stats.stats
+        };
+      }
+      newishObj.socketDefs = newestObj
+      // console.log(newishObj.socketDefs)
+      sent = true;
+      dataHolder = newishObj
+      return newishObj
+    })
+    return returnItem
+  }
+  else if (sent === true) {
+    const returnItem = dataHolder;
+    return returnItem
+  }
+  return dataHolder
+}
+
+
 let keepTrackOfHowMany = 0;
 let allResponses = [];
 let allGames = [];
@@ -195,6 +275,27 @@ function getAllDaStuff(something) {
 }
 
 
+
+router.get('/hoping', jsonParser, async (req, res) => {
+  // const manifest = await fetch('https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',).then(res => {
+  //   return res.json()
+  // });
+  axios
+  .get(
+    'https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+      }
+    }
+  )
+  .then(payload => {
+    let thisThing = Object.keys(payload.data.DestinyInventoryItemDefinition) //this works!!
+    res.json(thisThing)
+  })
+  // res.json(manifest)
+})
 
 router.get('/hope', jsonParser, async (req, res) => {
   let qwerty = [];
@@ -427,7 +528,16 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
+    // for(let entry in wepPop) {
+    //   let idToUse = entry._id;
+    //   entry.wepName = manifest.DestinyInventoryItemDefinition[idToUse].displayProperties.name;
+    // }
     qwerty.push(wepPop)
+    // getWepDefinitions(wepPop)
+    // const manifest = await fetch('https://www.bungie.net/common/destiny2_content/json/en/aggregate-2897f1bd-269c-4b6e-a1bf-61a8577b687b.json',).then(res => {
+    //   return res.json()
+    // });
+    // qwerty.push(manifest.DestinyInventoryItemDefinition)
 
     const duoWepPop = await PGCR.aggregate(
       [
@@ -674,13 +784,92 @@ router.get('/hope', jsonParser, async (req, res) => {
           }
         },
         {
+          $group: {
+            _id: "$_id.map",
+            classWins: {
+              $push: {
+                class: "$_id.class",
+                winRate: "$standing"
+              }
+            }
+          }
+        },
+        {
           $sort: {
-            standing: 1 
+            _id: 1 
           }
         },
       ]
     )
     qwerty.push(mapStats)
+    // console.log("Starting...")
+    // const axiosRes = await axios
+    // .get(
+    //   'https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',
+    //   {
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+    //     }
+    //   }
+    // )
+    // .then(payload => {
+    //   console.log("Success!")
+    //   // qwerty.push(payload)
+    //   // return payload.data.DestinyInventoryItemDefinition
+    //   let newItem = payload.data.DestinyInventoryItemDefinition
+    //   let socketArray = [];
+    //   let newishObj = {};
+    //   let newestObj = {};
+    //   for(let entry in wepPop) {
+    //     let idToUse = wepPop[entry]._id;
+    //     // console.log(idToUse)
+    //     let intSocketsVals = newItem[idToUse].sockets.intrinsicSockets.map(eachSocket => { //MIGHT HAVE TO START SENDING SOCKET DATA FROM HERE.  LIKE YOU DID WITH WEPPOP, CYCLE THROUGH EACH SOCKET, KEEP A LIST, SEND DEFS TO FRONTEND
+    //       if(!socketArray.includes(eachSocket.plugItemHash)) {
+    //         socketArray.push(eachSocket.plugItemHash)
+    //       }
+    //       return eachSocket.plugItemHash
+    //     })
+    //     let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
+    //       if(eachSocket.reusablePlugItems.length != 100) {
+    //         let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => {
+    //           if(!socketArray.includes(eachPlugItem.plugItemHash)) {
+    //             socketArray.push(eachPlugItem.plugItemHash)
+    //           }
+    //           eachPlugItem.plugItemHash
+    //         })
+    //         return hashMaker
+    //       }
+    //     })
+    //     let allSocketDefs = socketArray.forEach(es => { //FINISH
+    //       newestObj[es] = {
+    //         socketName: newItem[es].displayProperties.name,
+    //         socketDesc: newItem[es].displayProperties.description,
+    //         socketIcon: newItem[es].displayProperties.icon,
+    //         socketType: newItem[es].itemTypeDisplayName,
+    //       }
+    //     })
+    //     newishObj[idToUse] = {
+    //       weaponName: newItem[idToUse].displayProperties.name,
+    //       weaponIcon: newItem[idToUse].displayProperties.icon,
+    //       weaponType: newItem[idToUse].itemTypeDisplayName,
+    //       weaponTier: newItem[idToUse].inventory.tierType,
+    //       ammoType: newItem[idToUse].equippingBlock.ammoType,
+    //       itemCategories: newItem[idToUse].itemCategoryHashes,
+    //       intSockets: intSocketsVals,
+    //       varSockets: varSocketsVals,
+    //       weaponValues: newItem[idToUse].stats.stats
+    //     };
+    //   }
+    //   newishObj.socketDefs = newestObj
+    //   return newishObj
+    // })
+    let finalizedRes = await axiosRes(wepPop);
+    qwerty.push(finalizedRes)
+    // for(let entry in wepPop) {
+    //   let idToUse = entry._id;
+    //   entry.wepName = axiosRes[idToUse].displayProperties.name;
+    // }
 
   // const allWepVals = await Mani.find();
   // qwerty.push(allWepVals); 
@@ -689,7 +878,6 @@ router.get('/hope', jsonParser, async (req, res) => {
   res.json(qwerty);
 
 });
-
 
 let firstResponse;
 let secondResponse;
