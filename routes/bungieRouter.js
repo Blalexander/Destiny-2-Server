@@ -41,6 +41,7 @@ async function axiosRes(wepPop) {
       let socketArray = [];
       let newishObj = {};
       let newestObj = {};
+      let statObj = {};
       for(let entry in wepPop) {
         let idToUse = wepPop[entry]._id;
         // console.log(idToUse)
@@ -53,10 +54,11 @@ async function axiosRes(wepPop) {
         let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
           if(eachSocket.reusablePlugItems.length != 100) {
             let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => {
+              // console.log(eachPlugItem)
               if(!socketArray.includes(eachPlugItem.plugItemHash)) {
                 socketArray.push(eachPlugItem.plugItemHash)
               }
-              eachPlugItem.plugItemHash
+              return eachPlugItem.plugItemHash
             })
             return hashMaker
           }
@@ -69,6 +71,16 @@ async function axiosRes(wepPop) {
             socketType: newItem[es].itemTypeDisplayName,
           }
         })
+        let statDefinitions = Object.keys(newItem[idToUse].stats.stats);
+        let revisedDefs = statDefinitions.forEach(eachStat => {
+          if(!statObj[eachStat]) {
+            // statArray.push(eachStat);
+            statObj[payload.data.DestinyStatDefinition[eachStat].displayProperties.name] = {
+              statHash:  eachStat,
+              statDesc: payload.data.DestinyStatDefinition[eachStat].displayProperties.description
+            }
+          }
+        })
         newishObj[idToUse] = {
           weaponName: newItem[idToUse].displayProperties.name,
           weaponIcon: newItem[idToUse].displayProperties.icon,
@@ -76,12 +88,14 @@ async function axiosRes(wepPop) {
           weaponTier: newItem[idToUse].inventory.tierType,
           ammoType: newItem[idToUse].equippingBlock.ammoType,
           itemCategories: newItem[idToUse].itemCategoryHashes,
-          intSockets: intSocketsVals,
+          intSockets: intSocketsVals, 
           varSockets: varSocketsVals,
-          weaponValues: newItem[idToUse].stats.stats
+          weaponValues: newItem[idToUse].stats.stats,
+          playerPerformances: wepPop[entry]
         };
       }
       newishObj.socketDefs = newestObj
+      newishObj.statDefs = statObj
       // console.log(newishObj.socketDefs)
       sent = true;
       dataHolder = newishObj
