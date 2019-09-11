@@ -53,14 +53,26 @@ async function axiosRes(wepPop) {
         })
         let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
           if(eachSocket.reusablePlugItems.length != 100) {
-            let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => {
-              // console.log(eachPlugItem)
-              if(!socketArray.includes(eachPlugItem.plugItemHash)) {
-                socketArray.push(eachPlugItem.plugItemHash)
-              }
-              return eachPlugItem.plugItemHash
-            })
-            return hashMaker
+            if(eachSocket.randomizedPlugItems[0] != undefined) {
+              let hashMaker = eachSocket.randomizedPlugItems.map(eachPlugItem => { //reusable
+                // console.log(eachPlugItem)
+                if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
+                  socketArray.push(eachPlugItem.plugItemHash)
+                }
+                return eachPlugItem.plugItemHash
+              })
+              return hashMaker
+            }
+            else {
+              let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { //reusable
+                // console.log(eachPlugItem)
+                if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
+                  socketArray.push(eachPlugItem.plugItemHash)
+                }
+                return eachPlugItem.plugItemHash
+              })
+              return hashMaker
+            }
           }
         })
         let allSocketDefs = socketArray.forEach(es => { //FINISH
