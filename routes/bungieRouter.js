@@ -25,7 +25,7 @@ async function axiosRes(wepPop) {
   if(sent === false) {
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-f2cf75d7-0de6-4488-aad0-2fa02a0ac343.json',
       {
         headers: {
           "Content-Type": "application/json",
@@ -44,8 +44,8 @@ async function axiosRes(wepPop) {
       let statObj = {};
       for(let entry in wepPop) {
         let idToUse = wepPop[entry]._id;
-        // console.log(idToUse)
-        let intSocketsVals = newItem[idToUse].sockets.intrinsicSockets.map(eachSocket => { //MIGHT HAVE TO START SENDING SOCKET DATA FROM HERE.  LIKE YOU DID WITH WEPPOP, CYCLE THROUGH EACH SOCKET, KEEP A LIST, SEND DEFS TO FRONTEND
+        console.log(idToUse)
+        let intSocketsVals = newItem[idToUse].sockets.intrinsicSockets.map(eachSocket => {
           if(!socketArray.includes(eachSocket.plugItemHash)) {
             socketArray.push(eachSocket.plugItemHash)
           }
@@ -53,8 +53,8 @@ async function axiosRes(wepPop) {
         })
         let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
           if(eachSocket.reusablePlugItems.length != 100) {
-            if(eachSocket.randomizedPlugItems[0] != undefined) {
-              let hashMaker = eachSocket.randomizedPlugItems.map(eachPlugItem => { //reusable
+            if(eachSocket.reusablePlugItems != undefined) {
+              let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { //reusable
                 // console.log(eachPlugItem)
                 if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
                   socketArray.push(eachPlugItem.plugItemHash)
@@ -308,7 +308,7 @@ router.get('/hoping', jsonParser, async (req, res) => {
   // });
   axios
   .get(
-    'https://www.bungie.net/common/destiny2_content/json/en/aggregate-b9ff7c84-35cc-4e9b-be1e-a23739d514c2.json',
+    'https://www.bungie.net/common/destiny2_content/json/en/aggregate-f2cf75d7-0de6-4488-aad0-2fa02a0ac343.json',
     {
       headers: {
         "Content-Type": "application/json",
