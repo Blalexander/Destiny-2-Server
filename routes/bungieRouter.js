@@ -1,4 +1,4 @@
-'use strict';
+// 'use strict';
 const axios = require("axios");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -20,12 +20,27 @@ mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone",
 let sent = false;
 let dataHolder;
 
+// let updatedManifestUrl = axios
+//   .get('https://www.bungie.net/Platform/Destiny2/Manifest/',
+//   {
+//   headers: {
+//     "Content-Type": "application/json",
+//     "X-API-Key": "62261ab05c7b4f078c05a94f18124761"
+//   }
+// }).then(manifestRoutes => {
+//   // console.log('https://www.bungie.net' + manifestRoutes.data.Response.jsonWorldContentPaths.en)
+//   return 'https://www.bungie.net' +  manifestRoutes.data.Response.jsonWorldContentPaths.en
+// }).catch(() => {
+//   console.log("Woops!  Error retrieving manifest URLs")
+// })
+
 console.log("Starting...")
 async function axiosRes(wepPop) { 
   if(sent === false) {
+    // updatedManifestUrl = String(updatedManifestUrl)
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-f2cf75d7-0de6-4488-aad0-2fa02a0ac343.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-fcfe9df2-e946-4d0e-baeb-da328278a385.json',
       {
         headers: {
           "Content-Type": "application/json",
@@ -38,22 +53,35 @@ async function axiosRes(wepPop) {
       // qwerty.push(payload)
       // return payload.data.DestinyInventoryItemDefinition
       let newItem = payload.data.DestinyInventoryItemDefinition
+      let plugRoute = payload.data.DestinyPlugSetDefinition
       let socketArray = [];
       let newishObj = {};
       let newestObj = {};
       let statObj = {};
+      let medalsObj = {};
+
+      // for(let unprocessedMedalGroups in medals) {
+      //   for(let eachMedalGroup in unprocessedMedalGroups) {
+      //     if(medalsObj)
+      //   }
+      // }
+
       for(let entry in wepPop) {
         let idToUse = wepPop[entry]._id;
-        console.log(idToUse)
-        let intSocketsVals = newItem[idToUse].sockets.intrinsicSockets.map(eachSocket => {
-          if(!socketArray.includes(eachSocket.plugItemHash)) {
-            socketArray.push(eachSocket.plugItemHash)
+        console.log("idToUse", idToUse)
+        let intSocketsVals = newItem[idToUse].sockets.socketEntries.map((eachSocket, indy) => {
+          if(indy === 0) {
+            if(!socketArray.includes(eachSocket.singleInitialItemHash))
+            {
+              socketArray.push(eachSocket.singleInitialItemHash)
+            }
+            return eachSocket.singleInitialItemHash
           }
-          return eachSocket.plugItemHash
+          // return eachSocket.singleInitialItemHash
         })
         let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
           if(eachSocket.reusablePlugItems.length != 100) {
-            if(eachSocket.reusablePlugItems != undefined) {
+            if(eachSocket.reusablePlugItems.length != 0) {
               let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { //reusable
                 // console.log(eachPlugItem)
                 if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
@@ -64,23 +92,33 @@ async function axiosRes(wepPop) {
               return hashMaker
             }
             else {
-              let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { //reusable
-                // console.log(eachPlugItem)
-                if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
-                  socketArray.push(eachPlugItem.plugItemHash)
-                }
-                return eachPlugItem.plugItemHash
-              })
-              return hashMaker
+              if(eachSocket.reusablePlugSetHash) {
+                let hashMaker = plugRoute[eachSocket.reusablePlugSetHash].reusablePlugItems.map(eachPlugItem => { //reusable
+                  // console.log(eachPlugItem)
+                  if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
+                    socketArray.push(eachPlugItem.plugItemHash)
+                  }
+                  return eachPlugItem.plugItemHash
+                })
+                return hashMaker
+              }
+
+              // if(!socketArray.includes(eachSocket.singleInitialItemHash))
+              // {
+              //   socketArray.push(eachSocket.singleInitialItemHash)
+              // }
+              // return eachSocket.singleInitialItemHash
             }
           }
         })
         let allSocketDefs = socketArray.forEach(es => { //FINISH
-          newestObj[es] = {
-            socketName: newItem[es].displayProperties.name,
-            socketDesc: newItem[es].displayProperties.description,
-            socketIcon: newItem[es].displayProperties.icon,
-            socketType: newItem[es].itemTypeDisplayName,
+          if(newItem[es]) {
+            newestObj[es] = {
+              socketName: newItem[es].displayProperties.name,
+              socketDesc: newItem[es].displayProperties.description,
+              socketIcon: newItem[es].displayProperties.icon,
+              socketType: newItem[es].itemTypeDisplayName,
+            }
           }
         })
         let statDefinitions = Object.keys(newItem[idToUse].stats.stats);
@@ -130,6 +168,8 @@ let allInstanceIds = [];
 let childId;
 const pg = PGCR();
 const Mfst = Mani();
+
+
 
 router.get("/second", (req, res) => {
   keepTrackOfHowMany = 0;
@@ -890,7 +930,39 @@ router.get('/hope', jsonParser, async (req, res) => {
     //   newishObj.socketDefs = newestObj
     //   return newishObj
     // })
-    let finalizedRes = await axiosRes(wepPop);
+
+    // const medals = await PGCR.aggregate(
+    //   [{
+    //     $unwind: {
+    //       path: "$game.Response.entries",
+    //       preserveNullAndEmptyArrays: false
+    //     },
+    //     $unwind: {
+    //       path: "$game.Response.entries.extended.weapons",
+    //       preserveNullAndEmptyArrays: false
+    //     },
+    //     $group: {
+    //       _id: {
+    //         primaryWep: "$game.Response.entries.extended.weapons.referenceId",
+    //         medals: "$game.Response.entries.extended.values",
+    //       },
+    //       count: { $sum:1 } 
+    //     },
+    //     $group: {
+    //       _id: "$_id.primaryWep",
+
+    //       medalsEarned: {
+    //         $push: "$_id.medals"
+    //       },
+    //       totalCount: { $sum: "$count" } 
+    //     },
+    //     $sort: {
+    //       totalCount: -1
+    //     }
+    //   }]
+    // )
+
+    let finalizedRes = await axiosRes(wepPop); //send secondary medal query
     qwerty.push(finalizedRes)
     // for(let entry in wepPop) {
     //   let idToUse = entry._id;
@@ -911,6 +983,108 @@ let membershipType;
 let membershipId;
 let finalResponse = [];
 
+
+router.get("/combinations", async (req, res) => {
+  console.log(req.query.hash)
+  let wepToFind = req.query.hash;
+  let numToFind = Number(wepToFind);
+  // console.log(wepToFind)
+  
+  const weaponCombinations = await PGCR.aggregate(
+    [
+      {
+        $unwind:   {
+          path: "$game.Response.entries",
+          preserveNullAndEmptyArrays: false
+        }
+      },
+      {
+        $match: {
+          "game.Response.entries.extended.weapons.referenceId": numToFind
+        }
+      },
+      {
+        $group: { 
+          _id: {
+            wepHashes: "$game.Response.entries.extended.weapons.referenceId",
+            wepKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+            grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
+            meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
+            abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
+            superKills: "$game.Response.entries.extended.values.weaponKillsSuper.basic.value",
+            pAssists: "$game.Response.entries.values.assists.basic.value",
+            pScore: "$game.Response.entries.values.score.basic.value",
+            pKills: "$game.Response.entries.values.kills.basic.value",
+            pDeaths: "$game.Response.entries.values.deaths.basic.value",
+            pAvPerKill: "$game.Response.entries.values.averageScorePerKill.basic.value",
+            pAvPerLife: "$game.Response.entries.values.averageScorePerLife.basic.value",
+            pOppDefeated: "$game.Response.entries.values.opponentsDefeated.basic.value",
+            pEff: "$game.Response.entries.values.efficiency.basic.value",
+            pStanding: "$game.Response.entries.values.standing.basic.value",
+          },
+          count: { $sum:1 } 
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.wepHashes",
+          allHashes: {
+            $addToSet: "$_id.wepHashes"
+          },
+          allKills: {
+            $push: "$_id.wepKills"
+          },
+          grenadeKills: {
+            $avg: "$_id.grenadeKills"
+          },
+          meleeKills: {
+            $avg: "$_id.meleeKills"
+          },
+          abilityKills: {
+            $avg: "$_id.abilityKills"
+          },
+          superKills: {
+            $avg: "$_id.superKills"
+          },
+          assistsAvg: {
+            $avg: "$_id.pAssists"
+          },
+          scoreAvg: {
+            $avg: "$_id.pScore"
+          },
+          killsAvg: {
+            $avg: "$_id.pKills"
+          },
+          deathsAvg: {
+            $avg: "$_id.pDeaths"
+          },
+          perKAvg: {
+            $avg: "$_id.pAvPerKill"
+          },
+          perLAvg: {
+            $avg: "$_id.pAvPerLife"
+          },
+          oppDefAvg: {
+            $avg: "$_id.pOppDefeated"
+          },
+          effAvg: {
+            $avg: "$_id.pEff"
+          },
+          standingAvg: {
+            $avg: "$_id.pStanding"
+          },
+          totalCount: { $sum: "$count" } 
+        }
+      },
+      {
+        $sort: {
+          totalCount: -1
+        }
+      },
+    ]
+  )
+    res.json(weaponCombinations)
+})
 
 router.get("/first", (req, res) => {
   allResponses = [];
