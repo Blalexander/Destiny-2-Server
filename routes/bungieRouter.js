@@ -40,7 +40,7 @@ async function axiosRes(wepPop) {
     // updatedManifestUrl = String(updatedManifestUrl)
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-fcfe9df2-e946-4d0e-baeb-da328278a385.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-414da6c1-0af3-4f2a-92ac-25bbb4501694.json',
       {
         headers: {
           "Content-Type": "application/json",
@@ -80,19 +80,29 @@ async function axiosRes(wepPop) {
           // return eachSocket.singleInitialItemHash
         })
         let varSocketsVals = newItem[idToUse].sockets.socketEntries.map(eachSocket => {
-          if(eachSocket.reusablePlugItems.length != 100) {
-            if(eachSocket.reusablePlugItems.length != 0) {
-              let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { //reusable
-                // console.log(eachPlugItem)
-                if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
-                  socketArray.push(eachPlugItem.plugItemHash)
-                }
-                return eachPlugItem.plugItemHash
-              })
-              return hashMaker
-            }
-            else {
-              if(eachSocket.reusablePlugSetHash) {
+          // if(eachSocket.reusablePlugItems.length != 100) {
+          //   if(eachSocket.reusablePlugItems.length != 0) {
+          //     let hashMaker = eachSocket.reusablePlugItems.map(eachPlugItem => { 
+          //       // console.log(eachPlugItem)
+          //       if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
+          //         socketArray.push(eachPlugItem.plugItemHash)
+          //       }
+          //       return eachPlugItem.plugItemHash
+          //     })
+          //     return hashMaker
+          //   }
+          //   else {
+              if(eachSocket.randomizedPlugSetHash) {
+                let hashMaker = plugRoute[eachSocket.randomizedPlugSetHash].reusablePlugItems.map(eachPlugItem => { //reusable
+                  // console.log(eachPlugItem)
+                  if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
+                    socketArray.push(eachPlugItem.plugItemHash)
+                  }
+                  return eachPlugItem.plugItemHash
+                })
+                return hashMaker
+              }
+              else if(eachSocket.reusablePlugSetHash) {
                 let hashMaker = plugRoute[eachSocket.reusablePlugSetHash].reusablePlugItems.map(eachPlugItem => { //reusable
                   // console.log(eachPlugItem)
                   if(!socketArray.includes(eachPlugItem.plugItemHash)) { //specifically for gathering socket defs
@@ -102,14 +112,8 @@ async function axiosRes(wepPop) {
                 })
                 return hashMaker
               }
-
-              // if(!socketArray.includes(eachSocket.singleInitialItemHash))
-              // {
-              //   socketArray.push(eachSocket.singleInitialItemHash)
-              // }
-              // return eachSocket.singleInitialItemHash
-            }
-          }
+            // }
+          // }
         })
         let allSocketDefs = socketArray.forEach(es => { //FINISH
           if(newItem[es]) {
@@ -132,6 +136,7 @@ async function axiosRes(wepPop) {
           }
         })
         newishObj[idToUse] = {
+          weaponHash: idToUse,
           weaponName: newItem[idToUse].displayProperties.name,
           weaponIcon: newItem[idToUse].displayProperties.icon,
           weaponType: newItem[idToUse].itemTypeDisplayName,
@@ -1140,7 +1145,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=1`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=10`,
             {
               headers: {
                 "Content-Type": "application/json",
