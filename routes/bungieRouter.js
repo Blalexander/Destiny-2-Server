@@ -138,10 +138,13 @@ async function axiosRes(wepPop) {
         newishObj[idToUse] = {
           weaponHash: idToUse,
           weaponName: newItem[idToUse].displayProperties.name,
+          weaponDescription: newItem[idToUse].displayProperties.description,
           weaponIcon: newItem[idToUse].displayProperties.icon,
+          weaponScreenshot: newItem[idToUse].screenshot,
           weaponType: newItem[idToUse].itemTypeDisplayName,
           weaponTier: newItem[idToUse].inventory.tierType,
           ammoType: newItem[idToUse].equippingBlock.ammoType,
+          damageType: newItem[idToUse].damageTypeHashes,
           itemCategories: newItem[idToUse].itemCategoryHashes,
           intSockets: intSocketsVals, 
           varSockets: varSocketsVals,
@@ -533,6 +536,8 @@ router.get('/hope', jsonParser, async (req, res) => {
               pAssists: "$game.Response.entries.values.assists.basic.value",
               pScore: "$game.Response.entries.values.score.basic.value",
               pKills: "$game.Response.entries.values.kills.basic.value",
+              pWepKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKills.basic.value",
+              pWepPrecKills: "$game.Response.entries.extended.weapons.values.uniqueWeaponKillsPrecisionKills.basic.value",
               grenadeKills: "$game.Response.entries.extended.values.weaponKillsGrenade.basic.value",
               meleeKills: "$game.Response.entries.extended.values.weaponKillsMelee.basic.value",
               abilityKills: "$game.Response.entries.extended.values.weaponKillsAbility.basic.value",
@@ -558,6 +563,12 @@ router.get('/hope', jsonParser, async (req, res) => {
             },
             killsAvg: {
               $avg: "$_id.pKills"
+            },
+            wepKillsAvg: {
+              $avg: "$_id.pWepKills"
+            },
+            wepPrecKillsAvg: {
+              $avg: "$_id.pWepPrecKills"
             },
             grenadeKills: {
               $avg: "$_id.grenadeKills"
@@ -1145,7 +1156,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=10`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=100`,
             {
               headers: {
                 "Content-Type": "application/json",
