@@ -40,7 +40,7 @@ async function axiosRes(wepPop) {
     // updatedManifestUrl = String(updatedManifestUrl)
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-414da6c1-0af3-4f2a-92ac-25bbb4501694.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-2b775ccb-876f-4dff-8551-13c7f840f09b.json',
       {
         headers: {
           "Content-Type": "application/json",
@@ -59,6 +59,27 @@ async function axiosRes(wepPop) {
       let newestObj = {};
       let statObj = {};
       let medalsObj = {};
+      let eachPlayerStatAverages = { 
+        "Sidearm": {},
+        "Auto Rifle": {},
+        "Pulse Rifle": {},
+        "Combat Bow": {},
+        "Scout Rifle": {},
+        "Hand Cannon": {},
+        "Sniper Rifle": {},
+        "Submachine Gun": {},
+        "Trace Rifle": {},
+        "Fusion Rifle": {},
+        "Linear Fusion Rifle": {},
+        "Grenade Launcher": {},
+        "Shotgun": {},
+        "Rocket Launcher": {},
+        "Sword": {},
+        "Machine Gun": {},
+        "All Types": {
+          count: 0
+        }
+      };
 
       // for(let unprocessedMedalGroups in medals) {
       //   for(let eachMedalGroup in unprocessedMedalGroups) {
@@ -154,7 +175,63 @@ async function axiosRes(wepPop) {
       }
       newishObj.socketDefs = newestObj
       newishObj.statDefs = statObj
+
+      for (let eachWeaponKey in newishObj) {
+        let wepType = newishObj[eachWeaponKey].weaponType;
+    
+        if(wepType) {
+          if(eachPlayerStatAverages[wepType].count === undefined) {
+            eachPlayerStatAverages[wepType].count = 1;
+          }
+          else {
+            eachPlayerStatAverages[wepType].count++;
+            eachPlayerStatAverages["All Types"].count++;
+          }
+    
+          for (let eachWepPlayerStat in newishObj[eachWeaponKey].playerPerformances) {
+            if(eachWepPlayerStat !== "_id" && eachWepPlayerStat !== "totalCount") {
+              if(eachPlayerStatAverages[wepType][eachWepPlayerStat] === undefined) {
+                eachPlayerStatAverages[wepType][eachWepPlayerStat] = newishObj[eachWeaponKey].playerPerformances[eachWepPlayerStat]
+                if(eachPlayerStatAverages["All Types"][eachWepPlayerStat] === undefined) {
+                  eachPlayerStatAverages["All Types"][eachWepPlayerStat] = newishObj[eachWeaponKey].playerPerformances[eachWepPlayerStat]
+                }
+              }
+              else {
+                eachPlayerStatAverages[wepType][eachWepPlayerStat] += newishObj[eachWeaponKey].playerPerformances[eachWepPlayerStat]
+                eachPlayerStatAverages["All Types"][eachWepPlayerStat] += newishObj[eachWeaponKey].playerPerformances[eachWepPlayerStat]
+              }
+            }
+          }
+    
+          for (let eachWepPlayerStat in newishObj[eachWeaponKey].weaponValues) {
+            if(eachWepPlayerStat !== "_id" && eachWepPlayerStat !== "totalCount") {
+              if(eachPlayerStatAverages[wepType][eachWepPlayerStat] === undefined) {
+                eachPlayerStatAverages[wepType][eachWepPlayerStat] = newishObj[eachWeaponKey].weaponValues[eachWepPlayerStat].value
+                if(eachPlayerStatAverages["All Types"][eachWepPlayerStat] === undefined) {
+                  eachPlayerStatAverages["All Types"][eachWepPlayerStat] = newishObj[eachWeaponKey].weaponValues[eachWepPlayerStat].value
+                }
+              }
+              else {
+                eachPlayerStatAverages[wepType][eachWepPlayerStat] += newishObj[eachWeaponKey].weaponValues[eachWepPlayerStat].value
+                eachPlayerStatAverages["All Types"][eachWepPlayerStat] += newishObj[eachWeaponKey].weaponValues[eachWepPlayerStat].value
+              }
+            }
+          }
+    
+        }
+      }
+    
+      for(let eachWepType in eachPlayerStatAverages) {
+        for(let eachWepStat in eachPlayerStatAverages[eachWepType]) {
+          if(eachWepStat !== "count") {
+            eachPlayerStatAverages[eachWepType][eachWepStat] /= eachPlayerStatAverages[eachWepType].count
+          }
+        }
+        eachPlayerStatAverages[eachWepType].kdAvg = (eachPlayerStatAverages[eachWepType].killsAvg + eachPlayerStatAverages[eachWepType].assistsAvg) / eachPlayerStatAverages[eachWepType].deathsAvg
+      }
+
       // console.log(newishObj.socketDefs)
+      newishObj.playerAvgs = eachPlayerStatAverages
       sent = true;
       dataHolder = newishObj
       return newishObj
@@ -443,7 +520,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
-    qwerty.push(overallGameStats)
+    // qwerty.push(overallGameStats)
   
     const datesAndClasses = await PGCR.aggregate(
       [
@@ -469,7 +546,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
-    qwerty.push(datesAndClasses)
+    // qwerty.push(datesAndClasses)
   
     const wepsOverTime = await PGCR.aggregate(
       [
@@ -513,7 +590,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
-    qwerty.push(wepsOverTime)
+    // qwerty.push(wepsOverTime)
   
     const wepPop = await PGCR.aggregate(
       [
@@ -614,7 +691,7 @@ router.get('/hope', jsonParser, async (req, res) => {
     //   let idToUse = entry._id;
     //   entry.wepName = manifest.DestinyInventoryItemDefinition[idToUse].displayProperties.name;
     // }
-    qwerty.push(wepPop)
+    // qwerty.push(wepPop)
     // getWepDefinitions(wepPop)
     // const manifest = await fetch('https://www.bungie.net/common/destiny2_content/json/en/aggregate-2897f1bd-269c-4b6e-a1bf-61a8577b687b.json',).then(res => {
     //   return res.json()
@@ -718,7 +795,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         // }
       ]
     )
-    qwerty.push(duoWepPop)
+    // qwerty.push(duoWepPop)
 
     const classes = await PGCR.aggregate(
       [
@@ -744,7 +821,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
-    qwerty.push(classes)
+    // qwerty.push(classes)
 
     const classStats = await PGCR.aggregate(
       [
@@ -837,7 +914,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         // }
       ]
     )
-    qwerty.push(classStats)
+    // qwerty.push(classStats)
 
     const mapStats = await PGCR.aggregate(
       [
@@ -883,7 +960,7 @@ router.get('/hope', jsonParser, async (req, res) => {
         },
       ]
     )
-    qwerty.push(mapStats)
+    // qwerty.push(mapStats)
     // console.log("Starting...")
     // const axiosRes = await axios
     // .get(
