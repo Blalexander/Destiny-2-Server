@@ -18,9 +18,13 @@ app.use("/bungie", bungieRoute);
 
 // const PORT = process.env.PORT || 8080;
 
-app.get('/api/*', (req, res) => {
+app.get('/', (req, res) => {
   res.json({ok: true});
 });
+
+// app.get('/api/*', (req, res) => {
+//   res.json({ok: true});
+// });
 
 const { PORT } = require("./config");
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
