@@ -40,7 +40,7 @@ async function axiosRes(wepPop) {
     // updatedManifestUrl = String(updatedManifestUrl)
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-900dbb84-139b-43a4-a41e-9dbe81a031de.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-1424e4f5-4f35-488e-b3ec-41c3ecc5f688.json',
       {
         headers: {
           "Content-Type": "application/json",
