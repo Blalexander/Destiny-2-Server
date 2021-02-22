@@ -8,7 +8,7 @@ const { Mani } = require("./models");
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
 
-mongoose.connect("mongodb://blake:blake1@ds131903.mlab.com:31903/node-capstone", function(err) {
+mongoose.connect("mongodb+srv://blake:password222@node-capstone.3r04t.mongodb.net/node-capstone?retryWrites=true&w=majority", function(err) {
     if (err) {
         console.log('Not connected to the database: ' + err);
     } else {
@@ -40,7 +40,7 @@ async function axiosRes(wepPop) {
     // updatedManifestUrl = String(updatedManifestUrl)
     const returnItem = await axios
     .get(
-      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-9e74fb2c-ebb2-4e5b-8378-d7ea4b5dd54a.json',
+      'https://www.bungie.net/common/destiny2_content/json/en/aggregate-c5d7329b-3f1a-4c2f-ace2-863be468fcab.json',
       {
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +159,7 @@ async function axiosRes(wepPop) {
         newishObj[idToUse] = {
           weaponHash: idToUse,
           weaponName: newItem[idToUse].displayProperties.name,
-          weaponDescription: newItem[idToUse].displayProperties.description,
+          weaponDescription: newItem[idToUse].flavorText,
           weaponIcon: newItem[idToUse].displayProperties.icon,
           weaponScreenshot: newItem[idToUse].screenshot,
           weaponType: newItem[idToUse].itemTypeDisplayName,
@@ -1233,7 +1233,7 @@ router.get("/first", (req, res) => {
         await Promise.all(idHolder.map(async (chidd) => {
           await axios
           .get(
-            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=100`,
+            `https://www.bungie.net/Platform/Destiny2/${membershipType}/Account/${membershipId}/Character/${chidd}/Stats/Activities/?mode=5&count=50`,
             {
               headers: {
                 "Content-Type": "application/json",
